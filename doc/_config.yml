@@ -2,8 +2,9 @@
 # Learn more at https://jupyterbook.org/customize/config.html
 
 title: geqo Documentation
-author: JoS Quantum
+author: JoS QUANTUM GmbH
 logo: _static/geqo_logo.png
+copyright: "2025"
 
 # Force re-execution of notebooks on each build.
 # See https://jupyterbook.org/content/execute.html
