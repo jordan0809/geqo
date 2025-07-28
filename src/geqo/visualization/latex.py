@@ -111,7 +111,7 @@ def tolatex(
     """Convert a `Sequence` object into LaTeX quantikz code for visualizing quantum circuits.
 
     Args:
-        seq (Sequence): The GEQO Sequence to convert.
+        seq (Sequence): The geqo Sequence to convert.
         backend (Simulator, optional): The simulator instance used for resolving symbolic or numeric values in the circuit.
         decompose_subseq (bool, optional): Whether to decompose any subsequences inside the main sequence. Defaults to `False`.
         pack (bool, optional): Whether to compactify the circuit by placing non-conflicting operations in the same column. Defaults to `True`.
@@ -234,7 +234,7 @@ def tolatex(
 
                     if isinstance(gates[i], QuantumOperation) and not isinstance(
                         gates[i], (BasicGate, InverseBasicGate, Sequence)
-                    ):  # single-qubit GEQO gates defined in geqo_gates.py
+                    ):  # single-qubit geqo gates defined in geqo_gates.py
                         # specify the name formats of phase-related gates and S-gate, then append the resulting gates to the quantum wires
                         if isinstance(gates[i], (Gates.SGate, Gates.InverseSGate)):
                             name = (
@@ -450,7 +450,7 @@ def tolatex(
                             name = gate.name
                             valid_name(name)
 
-                        else:  # GEQO gates defined in geqo_gates.py
+                        else:  # geqo gates defined in geqo_gates.py
                             if isinstance(gate, (Gates.SGate, Gates.InverseSGate)):
                                 if isinstance(gates[i], QuantumControl):
                                     name = (
@@ -627,7 +627,7 @@ def tolatex(
                                     non_pccm=False,
                                 )
 
-                            else:  # Other GEQO gates (QubitReversal,QFT,InverseQFT,PermuteQubits)
+                            else:  # Other geqo gates (QubitReversal,QFT,InverseQFT,PermuteQubits)
                                 name = get_gate_name(gate, backend, greek_symbol)
 
                         num_targets = gate.getNumberQubits()
@@ -1324,7 +1324,7 @@ def tolatex(
 
                     if isinstance(gates[i], QuantumOperation) and not isinstance(
                         gates[i], QuantumControl
-                    ):  # multi-qubit GEQO gates
+                    ):  # multi-qubit geqo gates
                         if isinstance(gates[i], Gates.CNOT):
                             lines[targets[i][0]].append(
                                 f"\\ctrl{{{targets[i][-1] - targets[i][0]}}}&"
@@ -1681,10 +1681,10 @@ def plot_latex(
     return_quantikz: bool = False,
     **kwargs,
 ):
-    """Plot a LaTeX-style (quantikz) quantum circuit diagram from a GEQO `Sequence`.
+    """Plot a LaTeX-style (quantikz) quantum circuit diagram from a geqo `Sequence`.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
+        seq (Sequence): The geqo `Sequence` to visualize.
         backend (Simulator, optional): The simulator backend used to resolve parameter values. Defaults to `None`.
         decompose_subseq (bool, optional): Whether to decompose subsequences within the main sequence. Defaults to `False`.
         pack (bool, optional): Whether to compactify the circuit by placing non-conflicting gates in the same column. Defaults to `True`.

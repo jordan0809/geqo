@@ -36,8 +36,8 @@ def draw_single_qubit_gate(
     """Plot a single-qubit gate onto a Matplotlib axis as part of a quantum circuit diagram.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
-        gate (QuantumOperation): The gate to plot. Can be a standard GEQO gate, a user-defined gate, or a non-unitary operation (e.g., Measure, DropQubits).
+        seq (Sequence): The geqo `Sequence` to visualize.
+        gate (QuantumOperation): The gate to plot. Can be a standard geqo gate, a user-defined gate, or a non-unitary operation (e.g., Measure, DropQubits).
         ax (matplotlib.axes): The Matplotlib axis to draw on.
         qubits (list): A list containing the indices of the target qubits (should have length 1 for single-qubit gates).
         num_qubits (int): Total number of qubits in the circuit.
@@ -72,7 +72,7 @@ def draw_single_qubit_gate(
         name = f"${gate.name}$"
         fontsize = 12
 
-    elif isinstance(gate, QuantumOperation):  # GEQO gates
+    elif isinstance(gate, QuantumOperation):  # geqo gates
         if isinstance(gate, Measure):  # Measurement gate
             ax.add_patch(
                 plt.Circle(
@@ -678,7 +678,7 @@ def plot_setbits(
     """Plot a SetBits operation onto a Matplotlib axis.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
+        seq (Sequence): The geqo `Sequence` to visualize.
         gate (QuantumOperation): The target SetBits gate instance, whose name is used to query the assigned values from the backend.
         ax (matplotlib.axes): The Matplotlib axis to draw on.
         qubits (list): A list containing the indices of the target qubits.
@@ -806,7 +806,7 @@ def plot_setqubits(
     Plot a SetQubits operation onto a Matplotlib axis.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
+        seq (Sequence): The geqo `Sequence` to visualize.
         gate (QuantumOperation): The target SetQubits gate instance, whose name is used to query the assigned values from the backend.
         ax (matplotlib.axes): The Matplotlib axis to draw on.
         qubits (list): A list containing the indices of the target qubits.
@@ -933,7 +933,7 @@ def plot_setdensitymatrix(
     """Plot a SetDensityMatrix operation onto a Matplotlib axis.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
+        seq (Sequence): The geqo `Sequence` to visualize.
         name (str): The name of the density matrix.
         ax (matplotlib.axes): The Matplotlib axis to draw on.
         qubits (list): A list containing the indices of the target qubits.
@@ -1034,7 +1034,7 @@ def draw_multi_ctrl_gate(
     """Plot a multi-controlled quantum gate on a Matplotlib axis.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
+        seq (Sequence): The geqo `Sequence` to visualize.
         gate (QuantumControl | ClassicalControl): The target multi-controlled gate instance.
         ax (matplotlib.axes): The Matplotlib axis to draw on.
         qubits (list): A list containing the indices of the target qubits.
@@ -1639,7 +1639,7 @@ def draw_multi_qubit_gate(
     """Plot a multi-qubit quantum gate on a Matplotlib axis.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
+        seq (Sequence): The geqo `Sequence` to visualize.
         gate (QuantumOperation): The target multi-qubit gate instance.
         ax (matplotlib.axes): The Matplotlib axis to draw on.
         qubits (list): A list containing the indices of the target qubits.
@@ -1709,7 +1709,7 @@ def draw_multi_qubit_gate(
 
     if isinstance(gate, QuantumOperation) and not isinstance(
         gate, (QuantumControl, ClassicalControl)
-    ):  # GEQO multi-qubit gates
+    ):  # geqo multi-qubit gates
         name = get_gate_name(gate, backend, greek_symbol)
 
         if name is None:
@@ -1920,10 +1920,10 @@ def plot_mpl(
     filename: str = None,
     **kwargs,
 ):
-    """Plot a matplotlib-style quantum circuit diagram from a GEQO `Sequence`.
+    """Plot a matplotlib-style quantum circuit diagram from a geqo `Sequence`.
 
     Args:
-        seq (Sequence): The GEQO `Sequence` to visualize.
+        seq (Sequence): The geqo `Sequence` to visualize.
         backend (Simulator, optional): The simulator backend used to resolve parameter values. Defaults to `None`.
         decompose_subseq (bool, optional): Whether to decompose subsequences within the main sequence. Defaults to `False`.
         pack (bool, optional): Whether to compactify the circuit by placing non-conflicting gates in the same column. Defaults to `True`.

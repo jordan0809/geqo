@@ -1,4 +1,4 @@
-# GEQO
+# geqo
 
 The first step towards our own quantum programming language.
 
@@ -42,7 +42,7 @@ uv sync --extra visualization --extra sympy
 
 ## Optional Installation Extras
 
-The GEQO package supports the following optional installation extras:
+The geqo package supports the following optional installation extras:
 
  - `[dev]`: Includes development dependencies, such as testing and linting tools.
  - `[visualization]`: Includes functions for data visualization. This includes functions to plot quantum circuits in both LaTeX and Matplotlib, as well as create bar plots for measurement outcomes

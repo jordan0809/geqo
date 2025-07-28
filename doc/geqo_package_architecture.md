@@ -1,8 +1,8 @@
-# GEQO Quantum Framework Package Architecture
-The following overviews show the structure of the GEQO Core source code.
+# geqo Quantum Framework Package Architecture
+The following overviews show the structure of the geqo source code.
 
 ## Package Structure Overview
-The main file tree of GEQO Core is shown in the following diagram.
+The main file tree of geqo is shown in the following diagram.
 
 ```
 geqo/

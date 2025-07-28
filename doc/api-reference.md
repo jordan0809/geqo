@@ -1,6 +1,6 @@
 # API Reference
 
-The GEQO Core framework consists of the following components:
+The geqo framework consists of the following components:
 - **algorithms**: implementations of more complex operations like QFT
 - **core**: used-defined gates, construction of circuits
 - **gates**: a collection of basic gates

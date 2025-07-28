@@ -1,6 +1,6 @@
 # Getting started
 
-First make sure you install all the necessary packages for GEQO in your environment. See the instructions in the GEQO Readme in the main folder.
+First make sure you install all the necessary packages for geqo in your environment. See the instructions in the geqo Readme in the main folder.
 
 To view the site, in a Terminal window, navigate to the `docs-site` directory and run
 ```
@@ -23,7 +23,7 @@ To add a new page to the site, the table of contents must be updated via editing
 chapters:
 - file: new_file    .. add this line
 ```
-* To add a new tutorial notebook named `tutorial.ipynb`, put the notebook inside the `docs-site/notebooks` directory, and add a new item to the sections list of the `using_geqo` chapter as shown below. Make sure to check that you can run all the cell in the notebook before building the website. If a cell fails to run, the site will not build. Once you have checked that, build the site again and check the 'Using GEQO' section to see if the new notebook has been successfully added.
+* To add a new tutorial notebook named `tutorial.ipynb`, put the notebook inside the `docs-site/notebooks` directory, and add a new item to the sections list of the `using_geqo` chapter as shown below. Make sure to check that you can run all the cell in the notebook before building the website. If a cell fails to run, the site will not build. Once you have checked that, build the site again and check the 'Using geqo' section to see if the new notebook has been successfully added.
 ```
 - file: using_geqo
   sections:

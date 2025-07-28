@@ -1,6 +1,6 @@
 # Installation
 
-The GEQO Core package can be installed by the following steps.
+The geqo package can be installed by the following steps.
 
 ## Clone the repository
 ```bash
@@ -17,7 +17,7 @@ uv sync --extra visualization --extra sympy
 ```
 
 ## Installation options
-The GEQO package supports the following optional installation extras:
+The geqo package supports the following optional installation extras:
 
  - `[dev]`: Includes development dependencies, such as testing and linting tools.
  - `[visualization]`: Includes functions for data visualization. This includes functions to plot quantum circuits in both LaTeX and Matplotlib, as well as create bar plots for measurement outcomes

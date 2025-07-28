@@ -1,5 +1,5 @@
-# GEQO Documentation
-GEQO Core is a framework for constructing and describing quantum circuits and executing them on simulators and on quantum hardware devices.
+# geqo Documentation
+geqo is a framework for constructing and describing quantum circuits and executing them on simulators and on quantum hardware devices.
 
 ## Why a new framework for quantum circuits?
 Quantum circuits serve as a general model for quantum computations, employing abstract concepts like bit flips or rotations with
@@ -8,7 +8,7 @@ specific angles on qubits.
 In practical applications, circuits are executed on a variety of backends, including different numerical or symbolic simulators, as well as various quantum hardware systems. Each of these backends typically has a unique method for representing a given operation
 and its parameters.
 
-Consequently, it is desirable to encode quantum circuits using an abstract, representation-independent language. This is precisely the function of GEQO Core. The separation between the circuit description and the concrete backend representation minimizes dependencies on other software packages, keeps GEQO Core lightweight and facilitates easy extension and customization.
+Consequently, it is desirable to encode quantum circuits using an abstract, representation-independent language. This is precisely the function of geqo. The separation between the circuit description and the concrete backend representation minimizes dependencies on other software packages, keeps geqo lightweight and facilitates easy extension and customization.
 
 ## Features
 * Quantum circuit construction (e.g. basic gates, controlled gates, measurements, classical and quantum control)
@@ -18,13 +18,13 @@ Consequently, it is desirable to encode quantum circuits using an abstract, repr
 * extendible and customizable
 
 ## Installation
-Instructions for the installation of GEQO Core can be found [here](installation.md)
+Instructions for the installation of geqo can be found [here](installation.md)
 
 ## Getting started
-An overview of the features of GEQO Core for constructing and simulating quantum circuits can be found in the [Introduction](notebooks/Introduction0.ipynb) section.
+An overview of the features of geqo for constructing and simulating quantum circuits can be found in the [Introduction](notebooks/Introduction0.ipynb) section.
 
 ## API reference
-The API has an extensive documentation. Start [here](api-reference.md) to dive into the GEQO API.
+The API has an extensive documentation. Start [here](api-reference.md) to dive into the geqo API.
 
 ## Support and contribution
 Please contact us under the email address support@jos-quantum.de
