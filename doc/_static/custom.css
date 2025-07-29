@@ -1,18 +1,10 @@
-/* JOS_PALETTE = ["#b332ff",
-"#61FBF8",
-"#1E164F",
-"#c71ab1",
-"#4c32ff"] */
-/* Colours=[electric magenta,
-aquamarine,
-bunting,
-red violet,
-electric violet] */
-
+/* Light theme palette: [#b332ff, #61FBF8, #1E164F, #c71ab1, #4c32ff] */
 /* Dark theme palette: [#C565FF, #A8E6E6, ] */
 
 /* ---------- Light Theme ---------- */
+
 html[data-theme="light"] {
+
     .current.reference.internal,
     .prev-next-title,
     .viewcode-link>span {
@@ -64,6 +56,7 @@ html[data-theme="light"] {
 /* ---------- Dark Theme ---------- */
 
 html[data-theme="dark"] {
+
     .current.reference.internal,
     .prev-next-title,
     .viewcode-link>span {
@@ -113,9 +106,6 @@ html[data-theme="dark"] {
     --pst-color-text-base: #EFEFE0;
     --pst-color-text-muted: #EFEFE0;
     --pst-color-primary: #C565FF;
-    /* --pst-color-link: #C565FF; */
-    /* --pst-color-primary: #ffffff; */
-    /* --pst-color-secondary: #ffffff; */
 
     /* Code box */
     .cell_input.docutils.container,

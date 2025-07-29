@@ -8,14 +8,9 @@ To view the site, in a Terminal window, navigate to the `docs-site` directory an
 ```
 The site will be served at `10.8.0.1.8301`.
 
-An example of the reference page for one of the modules looks like this:
-<img src='./readme_refs/module.png'>
-
-A Jupyter Notebook looks like this:
-<img src='./readme_refs/jupyter_notebook.png'>
 
 # Adding content
-Jupyter Book is able to render Jupyter notebooks and MyST markdown files and MyST markdown notebooks. For information on how to write in MyST markdown, see `markdown.md` and `markdown-notebooks.md` in the `readme_refs` directory.
+Jupyter Book is able to render Jupyter notebooks and MyST markdown files and MyST markdown notebooks.
 
 To add a new page to the site, the table of contents must be updated via editing the YAML file `_toc.yml`. Pay attention to the indentation.
 * To add a markdown file as a page to the site with path `qegq/docs-site/new_file.md`, add a new item to the chapters list as shown below. Build the site and check the table of contents to see that you've successfully added the page.
