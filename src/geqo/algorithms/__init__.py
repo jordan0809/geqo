@@ -24,7 +24,6 @@ __all__ = [
 ]
 
 if _OPTIONAL_NUMPY_SIMULATORS_ENABLED and _OPTIONAL_SYMPY_SIMULATORS_ENABLED:
-    from geqo.algorithms.risk_model import RiskModel
-__all__.append("RiskModel")
+    from geqo.algorithms.risk_model import RiskModel  # noqa: F401
 
-
+    __all__.append("RiskModel")
