@@ -28,9 +28,3 @@ The API has an extensive documentation. Start [here](api-reference.md) to dive i
 
 ## Support and contribution
 Please contact us under the email address support@jos-quantum.de
-
-## License
-
-<!--
-```{tableofcontents}
-``` -->
