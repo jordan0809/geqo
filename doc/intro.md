@@ -38,20 +38,20 @@ and its parameters.
 Consequently, it is desirable to encode quantum circuits using an abstract, representation-independent language. This is precisely the function of geqo. The separation between the circuit description and the concrete backend representation minimizes dependencies on other software packages, keeps geqo lightweight and facilitates easy extension and customization.
 
 ## Features
-* Quantum circuit construction (e.g. basic gates, controlled gates, measurements, classical and quantum control)
+* quantum circuit construction (e.g. basic gates, controlled gates, measurements, classical and quantum control)
 * simulators for numerical and symbolic evaluation of circuits, density matrices, state vectors, measurement results
 * converter for OpenQASM3
 * based on Python with a minimum set of dependencies
 * extendible and customizable
 
 ## Installation
-Instructions for the installation of geqo can be found [here](installation.md)
+Instructions for the installation of geqo can be found [here](installation.md).
 
 ## Getting started
-An overview of the features of geqo for constructing and simulating quantum circuits can be found in the [Introduction](notebooks/Introduction0.ipynb) section.
+A great place to start exploring how geqo allows you to build and simulate quantum circuits is our [Introduction](notebooks/Introduction0.ipynb) section.
 
 ## API reference
 The API has an extensive documentation. Start [here](api-reference.md) to dive into the geqo API.
 
 ## Support and contribution
-Please contact us under the email address support@jos-quantum.de
+Please contact us under the email address support@jos-quantum.de.
