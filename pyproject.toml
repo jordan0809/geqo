@@ -59,6 +59,10 @@ numpy = [
     "numpy>=1.20",
 ]
 
+license = "MIT"
+license-files = ["LICENSE"]
+
 #[project.urls]
-#Homepage = "https://github.com/yourusername/geqo"
-#Documentation = "https://yourusername.github.io/geqo/"
+Homepage = "https://github.com/JoSQUANTUM/geqo"
+Documentation = "https://geqo.jos-quantum.de"
+
