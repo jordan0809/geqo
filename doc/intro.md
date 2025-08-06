@@ -13,8 +13,8 @@ from geqo.gates import Hadamard, CNOT
 from geqo.core import Sequence
 seq=Sequence([],["q1","q2"],[ (Hadamard(),["q1"]), (CNOT(), ["q1","q2"]) ])
 
-from geqo.simulators import newSimulatorUnitarySymPy
-sim=newSimulatorUnitarySymPy(2)
+from geqo.simulators import simulatorUnitarySymPy
+sim=simulatorUnitarySymPy(2)
 sim.apply(seq,[0,1])
 sim.u
 ```

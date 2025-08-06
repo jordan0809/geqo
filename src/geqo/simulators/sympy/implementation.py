@@ -935,153 +935,6 @@ class mixedStateSimulatorSymPy(ensembleSimulatorSymPy):
 
 
 class simulatorUnitarySymPy(BaseSympySimulator):
-    """Calculate the unitary matrix corresponding to a sequence of
-    gates. No non-unitary operations like ClassicalControl, Measurement
-    or DropQubits are allowed.
-    """
-
-    def __init__(self, numberQubits: int):
-        """
-        The constructor of this simulator takes as parameters the number of qubits.
-
-        Parameters
-        ----------
-        numberQubits : int
-            The number of qubits of the simulated system.
-
-        Returns
-        -------
-        self : geqo.simulators.sympy.simulatorUnitarySymPy
-            A simulator object, which is based on SymPy.
-        """
-        values = {}
-        super().__init__(numberQubits, values)
-        self.u = sym.eye(2**self.numberQubits)
-
-    def __repr__(self) -> str:
-        """
-        Returns
-        -------
-        string_representation : String
-            Representation of the object as character string.
-        """
-        return f"{self.__class__.__name__}({self.numberQubits})"
-
-    def prepareBackend(self, operations: list[QuantumOperation]):
-        """
-        For a list of supported operators, this method sets the necessary values for the simulator.
-
-        Parameters
-        ----------
-        operations : list(geqo.core.quantum_operation.QuantumOperation)
-            A list of quantum operations, for which the backend should be prepared.
-        """
-        for ops in operations:
-            if isinstance(ops, QFT):
-                logger.info("prepare execution of QFT")
-                n = ops.numberQubits
-                for j in range(1, n):
-                    self.values[ops.nameSpacePrefix + "Ph" + str(j)] = (
-                        2 * S.Pi / (2 ** (j + 1))
-                    )
-            elif isinstance(ops, InverseQFT):
-                self.prepareBackend([ops.qft])
-            elif isinstance(ops, PCCM):
-                logger.info("prepare execution of PCCM")
-                self.values[ops.nameSpacePrefix + "RX(π/2)"] = (
-                    S.Pi / 2
-                )  # getRX(S.Pi / 2)
-                self.values[ops.nameSpacePrefix + "RX(-π/2)"] = (
-                    -S.Pi / 2
-                )  # getRX(-S.Pi / 2)
-                self.values[ops.nameSpacePrefix + "RY(-π/2)"] = (
-                    -S.Pi / 2
-                )  # getRY(-S.Pi / 2)
-                nameAngle = ops.nameSpacePrefix + ops.name
-                if nameAngle not in self.values:
-                    phi = sym.Symbol(nameAngle)
-                    self.values[ops.nameSpacePrefix + "RX(" + str(phi) + ")"] = (
-                        phi  # getRX(
-                    )
-                    # )
-                # phi
-                else:
-                    logger.debug(
-                        "found nameAngle %s with value %s",
-                        nameAngle,
-                        self.values[nameAngle],
-                    )
-                    phi = sym.Symbol(nameAngle)
-                    self.values[ops.nameSpacePrefix + "RX(" + str(phi) + ")"] = (
-                        self.values[nameAngle]
-                    )  # getRX(
-                    # self.values[nameAngle]
-                    # )
-            elif isinstance(ops, InversePCCM):
-                self.prepareBackend([ops.pccm])
-            elif isinstance(ops, Toffoli):
-                logger.info("prepare execution of Toffoli")
-                self.values[ops.nameSpacePrefix + "S.Pi/4"] = S.Pi / 4
-                self.values[ops.nameSpacePrefix + "-S.Pi/4"] = -S.Pi / 4
-            else:
-                logger.error("operation not supported: %s", ops)
-                raise Exception("operation not supported:", str(ops))
-
-    def apply(self, gate: QuantumOperation, targets: list[int]):
-        """
-        Calculate the updated unitary matrix, which is currently kept in the simulator, when the operation is executed. The unitary matrix is based on the order of applying operations.
-
-        Parameters
-        ----------
-        gate : geqo.core.quantum_operation.QuantumOperation
-            The operation that should be applied.
-        targets : list(int)
-            The list of qubit indexes, which are the target of the provided operation.
-        """
-        # If there is a decomposition into a sequence of other gates, then use it.
-        if gate.hasDecomposition() is True:
-            dec = gate.getEquivalentSequence()
-            qubitMapping = {}
-            if dec is not None:
-                for x in range(len(dec.qubits)):
-                    qubitMapping[dec.qubits[x]] = targets[x]
-
-                for d in dec.gatesAndTargets:
-                    # self.apply(d[0], [qubitMapping[x] for x in d[1]])
-                    key_type = type(dec.qubits[0])
-                    apply_targets = [
-                        qubitMapping[x]
-                        if type(x) is key_type
-                        else qubitMapping[dec.qubits[x]]
-                        for x in d[1]
-                    ]
-                    self.apply(d[0], apply_targets)
-
-        elif gate.isUnitary():
-            targetOrder = [q for q in targets]
-            for q in list(range(self.numberQubits)):
-                if q not in targetOrder:
-                    targetOrder.append(q)
-
-            perm = permutationMatrixQubitsSymPy(
-                [targetOrder.index(q) for q in list(range(self.numberQubits))]
-            )
-
-            u = getUnitarySymPy(gate, self.values)
-            u2 = TensorProduct(u, sym.eye(2 ** (self.numberQubits - len(targets))))
-            u3 = perm.T * u2 * perm
-
-            self.u = u3 * self.u
-        else:
-            logger.error(
-                "gate not implemented for %s: %s", self.__class__.__name__, gate
-            )
-            raise Exception(
-                f"gate not implemented for {self.__class__.__name__}: {gate}"
-            )
-
-
-class newSimulatorUnitarySymPy(simulatorUnitarySymPy):
     """
     Calculate the unitary matrix corresponding to a sequence of
     gates. No non-unitary operations like ClassicalControl, Measurement
@@ -1099,10 +952,21 @@ class newSimulatorUnitarySymPy(simulatorUnitarySymPy):
 
         Returns
         -------
-        newSimulatorUnitarySymPy : geqo.simulators.sympy.newSimulatorUnitarySymPy
+        simulatorUnitarySymPy : geqo.simulators.sympy.simulatorUnitarySymPy
             A simulator object, which is based on SymPy.
         """
-        super().__init__(numberQubits)
+        values = {}
+        super().__init__(numberQubits, values)
+        self.u = sym.eye(2**self.numberQubits)
+
+    def __repr__(self) -> str:
+        """
+        Returns
+        -------
+        string_representation : String
+            Representation of the object as character string.
+        """
+        return f"{self.__class__.__name__}({self.numberQubits})"
 
     def prepareBackend(self, operations: list[QuantumOperation]):
         """
