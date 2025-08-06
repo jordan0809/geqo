@@ -15,10 +15,9 @@ __numpy_simulators__ = [
 ]
 __sympy_simulators__ = [
     "ensembleSimulatorSymPy",
-    "simulatorUnitarySymPy",
     "ensembleSimulatorSymPy",
     "mixedStateSimulatorSymPy",
-    "newSimulatorUnitarySymPy",
+    "simulatorUnitarySymPy",
 ]
 
 __simulators__ = __base_simulators__
@@ -26,7 +25,6 @@ if _OPTIONAL_SYMPY_SIMULATORS_ENABLED:
     from geqo.simulators.sympy import (
         mixedStateSimulatorSymPy,  # noqa: F401
         simulatorUnitarySymPy,  # noqa: F401
-        newSimulatorUnitarySymPy,  # noqa: F401
         ensembleSimulatorSymPy,  # noqa: F401
     )  # noqa: F401
 

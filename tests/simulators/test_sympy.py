@@ -41,7 +41,6 @@ from geqo.simulators.sympy.implementation import (
     ensembleSimulatorSymPy,
     mixedStateSimulatorSymPy,
     simulatorUnitarySymPy,
-    newSimulatorUnitarySymPy,
     getUnitarySymPy,
 )
 
@@ -514,7 +513,7 @@ class TestSympySimulators:
         assert exc.args[0] == f"gate not implemented for mixedStateSimulatorSymPy: {op}"
         # assert exc.args[1] == op
 
-    def test_unitary_simulator(self):
+    def test_new_unitary_simulator(self):
         nqubits = 2
         sim = simulatorUnitarySymPy(nqubits)
         u = sym.eye(2**nqubits)
@@ -589,81 +588,4 @@ class TestSympySimulators:
             sim.apply(op, [0, 1])
         exc = exc_info.value
         assert exc.args[0] == f"gate not implemented for simulatorUnitarySymPy: {op}"
-        # assert exc.args[1] == op
-
-    def test_new_unitary_simulator(self):
-        nqubits = 2
-        sim = newSimulatorUnitarySymPy(nqubits)
-        u = sym.eye(2**nqubits)
-
-        assert sim.numberQubits == nqubits
-        assert sim.u == u
-        assert sim.values == {}
-        assert str(sim) == "newSimulatorUnitarySymPy(" + str(nqubits) + ")"
-
-        sim.setValue("a", 1.23)
-        b = Symbol("b")
-        sim.prepareBackend(
-            [QFT(2), InverseQFT(2), PCCM("a"), InversePCCM("b"), Toffoli()]
-        )
-        assert sim.values == {
-            "a": 1.23,
-            "Ph1": S.Pi / 2,
-            "RX(π/2)": S.Pi / 2,
-            "RX(-π/2)": -S.Pi / 2,
-            "RY(-π/2)": -S.Pi / 2,
-            "RX(a)": 1.23,
-            "RX(b)": b,
-            "S.Pi/4": S.Pi / 4,
-            "-S.Pi/4": -S.Pi / 4,
-        }
-
-        with pytest.raises(Exception) as exc_info:
-            sim.prepareBackend([Hadamard()])
-        exc = exc_info.value
-        assert exc.args[0] == "operation not supported:"
-        assert str(Hadamard()) in exc.args[1]
-
-        sim.setValue("a", 0.1)
-        sim.apply(identity_seq, [0, 1])
-        expect = np.eye(4, dtype=np.float64)
-        s = np.array(sim.u, dtype=np.float64)
-        np.testing.assert_allclose(expect, s, rtol=1e-7, atol=1e-9)
-
-        class MockOperation(QuantumOperation):
-            def __init__(self):
-                super().__init__()
-
-            def __repr__(self):
-                return "MockOp"
-
-            def __eq__(self, other):
-                if not isinstance(other, MockOperation):
-                    return False
-                else:
-                    return True
-
-            def getInverse(self):
-                return self
-
-            def getEquivalentSequence(self):
-                return None
-
-            def isUnitary(self):
-                return False
-
-            def hasDecomposition(self):
-                return False
-
-            def getNumberQubits(self):
-                return 1
-
-            def getNumberClassicalBits(self):
-                return 0
-
-        op = MockOperation()
-        with pytest.raises(Exception) as exc_info:
-            sim.apply(op, [0, 1])
-        exc = exc_info.value
-        assert exc.args[0] == f"gate not implemented for newSimulatorUnitarySymPy: {op}"
         # assert exc.args[1] == op
