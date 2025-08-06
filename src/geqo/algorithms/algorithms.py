@@ -836,7 +836,7 @@ def controlledXGateInternal(controls, ancilla, target, toffoli):
     """
     seq = []
 
-    if len(controls) > 3:
+    if len(controls) >= 3:
         buffer = controlledXGateInternal(
             controls[:-1], [controls[-1]], ancilla, toffoli
         )
@@ -852,7 +852,7 @@ def controlledXGateInternal(controls, ancilla, target, toffoli):
 
     seq.append((toffoli, [controls[-1]] + ancilla + target))
 
-    if len(controls) > 3:
+    if len(controls) >= 3:
         buffer = controlledXGateInternal(
             controls[:-1], [controls[-1]], ancilla, toffoli
         )

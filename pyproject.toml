@@ -13,8 +13,10 @@ classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",
   "Programming Language :: Python :: 3",
-  "Topic :: Scientific/Engineering :: Physics",
+  "Topic :: Scientific/Engineering :: Quantum Computing",
 ]
+license = "MIT"
+license-files = ["LICENSE"]
 
 dependencies = [
 ]
@@ -59,6 +61,6 @@ numpy = [
     "numpy>=1.20",
 ]
 
-#[project.urls]
-#Homepage = "https://github.com/yourusername/geqo"
-#Documentation = "https://yourusername.github.io/geqo/"
+[project.urls]
+Homepage = "https://github.com/JoSQUANTUM/geqo"
+Documentation = "https://geqo.jos-quantum.de"
