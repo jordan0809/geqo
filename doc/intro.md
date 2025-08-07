@@ -2,12 +2,18 @@
 geqo is a framework for constructing and describing quantum circuits and executing them on simulators and on quantum hardware devices.
 
 ## Quick installation and testing
-- clone the repository: git clone [https://github.com/JoSQUANTUM/geqo](https://github.com/JoSQUANTUM/geqo)
-- create a virtual environment: `python3 -m venv geqo-test`
-- enable environment: `source geqo-test/bin/activate`
-- install geqo with all options: `pip3 install -e geqo/[sympy,numpy,visualization,dev]`
-- optional: run unit tests: `python -m pytest geqo/tests/`
-- small example: start Python in the environment and get unitary of a quantum circuit for the EPR pair generation:
+1. clone the repository: `git clone https://github.com/JoSQUANTUM/geqo`
+2. create a virtual environment: `python3 -m venv geqo-test`
+3. enable environment: `source geqo-test/bin/activate`
+4. install geqo with all options: `pip3 install -e geqo/[sympy,numpy,visualization,dev]`
+5. optional: run unit tests: `python -m pytest geqo/tests/`
+
+geqo is also available on [PyPI](https://pypi.org/project/geqo/). To install from PyPI just create
+and activate an environment with steps 2 and 3 and then install geqo with
+`pip install geqo[sympy,numpy,visualization,dev]`.
+
+## Running a simple example
+Running a simple example: start Python in the environment and get unitary of a quantum circuit for the EPR pair generation:
 ```
 from geqo.gates import Hadamard, CNOT
 from geqo.core import Sequence
