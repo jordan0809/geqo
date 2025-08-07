@@ -10,6 +10,9 @@ The documentation can be found [here](https://geqo.jos-quantum.de/intro.html).
 - install geqo with all options: `pip install geqo[sympy,numpy,visualization,dev]`
 - optional: run unit tests: `python -m pytest geqo/tests/`
 
+geqo is also available on [PyPI](https://pypi.org/project/geqo/). To install from PyPI just run
+`pip install geqo` in the environment.
+
 ## Running a simple example
 - the example task is to get unitary of a quantum circuit for the EPR pair generation
 - start Python in the environment from the steps above
