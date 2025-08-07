@@ -1,7 +1,7 @@
 # geqo
 geqo is a framework for constructing and describing quantum circuits and executing them on simulators and on quantum hardware devices.
 
-The documentation can be found [here](doc/intro.md).
+The documentation can be found [here](https://geqo.jos-quantum.de/intro.html).
 
 ## Quick installation and testing
 - clone the repository: git clone [https://github.com/JoSQUANTUM/geqo](https://github.com/JoSQUANTUM/geqo)
