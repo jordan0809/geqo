@@ -4,7 +4,7 @@ geqo is a framework for constructing and describing quantum circuits and executi
 The documentation can be found [here](https://geqo.jos-quantum.de/intro.html).
 
 ## Quick installation and testing
-1. clone the repository: git clone [https://github.com/JoSQUANTUM/geqo](https://github.com/JoSQUANTUM/geqo)
+1. clone the repository: `git clone https://github.com/JoSQUANTUM/geqo`
 2. create a virtual environment: `python -m venv geqo-env`
 3. enable environment: `source geqo-env/bin/activate`
 4. install geqo with all options: `pip install geqo[sympy,numpy,visualization,dev]`
@@ -24,8 +24,8 @@ from geqo.gates import Hadamard, CNOT
 from geqo.core import Sequence
 seq=Sequence([],["q1","q2"],[ (Hadamard(),["q1"]), (CNOT(), ["q1","q2"]) ])
 
-from geqo.simulators import newSimulatorUnitarySymPy
-sim=newSimulatorUnitarySymPy(2)
+from geqo.simulators import simulatorUnitarySymPy
+sim=simulatorUnitarySymPy(2)
 sim.apply(seq,[0,1])
 sim.u
 ```
