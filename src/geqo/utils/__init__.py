@@ -1,15 +1,15 @@
+from geqo.utils._base_.helpers import (
+    bin2num,
+    embedSequences,
+    getSingleQubitOperationOnRegister,
+    num2bin,
+    partial_diag,
+    partialTrace,
+)
+
 from ..__deps__ import (
     _OPTIONAL_NUMPY_SIMULATORS_ENABLED,
     _OPTIONAL_SYMPY_SIMULATORS_ENABLED,
-)
-
-from geqo.utils._base_.helpers import (
-    bin2num,
-    num2bin,
-    embedSequences,
-    getSingleQubitOperationOnRegister,
-    partialTrace,
-    partial_diag,
 )
 
 if (not _OPTIONAL_SYMPY_SIMULATORS_ENABLED) and (
@@ -23,11 +23,11 @@ if (not _OPTIONAL_SYMPY_SIMULATORS_ENABLED) and (
 elif (_OPTIONAL_SYMPY_SIMULATORS_ENABLED) and (not _OPTIONAL_NUMPY_SIMULATORS_ENABLED):
     from geqo.utils._sympy_.helpers import (
         getSingleQubitOperationOnRegister,
-        partialTrace,
-        projection,
-        permutationMatrixQubitsSymPy,
         multiQubitsUnitary,
         newPartialTrace,
+        partialTrace,
+        permutationMatrixQubitsSymPy,
+        projection,
     )
 
 elif (not _OPTIONAL_SYMPY_SIMULATORS_ENABLED) and (_OPTIONAL_NUMPY_SIMULATORS_ENABLED):
@@ -42,13 +42,11 @@ else:
         getSingleQubitOperationOnRegister,
         partialTrace,
     )
-
-    from geqo.utils._sympy_.helpers import (
-        permutationMatrixQubitsSymPy,
-    )
-
     from geqo.utils._numpy_.helpers import (
         permutationMatrixQubitsNumPy,
+    )
+    from geqo.utils._sympy_.helpers import (
+        permutationMatrixQubitsSymPy,
     )
 
 __all__ = [

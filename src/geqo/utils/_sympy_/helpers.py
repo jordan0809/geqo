@@ -1,8 +1,9 @@
-import sympy as sym
-from sympy.physics.quantum import TensorProduct
 import itertools
-from geqo.utils._base_.helpers import bin2num, num2bin
 from typing import Any
+
+import sympy as sym
+from geqo.utils._base_.helpers import bin2num, num2bin
+from sympy.physics.quantum import TensorProduct
 
 
 def permutationMatrixQubitsSymPy(perm: list[int]) -> sym.Matrix:
