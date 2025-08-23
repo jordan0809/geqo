@@ -255,7 +255,7 @@ def phase_name_mpl(
                 angle = str(backend.values[name])
                 angle = valid_angle(angle, non_pccm)
             else:
-                angle = round(backend.values[name], 2)
+                angle = round(float(backend.values[name]), 2)
             if inverse is False:
                 name = f"{gate_initials} \n {angle}"
             else:

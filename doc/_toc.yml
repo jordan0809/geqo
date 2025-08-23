@@ -21,11 +21,14 @@ chapters:
   sections:
   - file: notebooks/QuantumAmplitudeEstimation.ipynb
   - file: notebooks/RiskModel.ipynb
+  - file: notebooks/KuperbergSieve.ipynb
 - file: advanced_features
   sections:
   - file: notebooks/NameSpace.ipynb
   - file: notebooks/PartialTrace.ipynb
   - file: notebooks/ToffoliDecomposition.ipynb
+  - file: notebooks/PatternMatcher.ipynb
+  - file: notebooks/UnitaryDecomposer.ipynb
 - file: geqo_package_architecture
 - file: api-reference
   sections:
