@@ -1,9 +1,22 @@
+from itertools import combinations
+from typing import List
+
+from geqo.core.basic import BasicGate, InverseBasicGate
 from geqo.core.quantum_circuit import Sequence
 from geqo.core.quantum_operation import QuantumOperation
-from geqo.gates.fundamental_gates import Hadamard, Phase, SwapQubits, PauliX
-from geqo.gates.rotation_gates import Rx, Ry
+from geqo.gates.fundamental_gates import (
+    CNOT,
+    Hadamard,
+    PauliX,
+    PauliY,
+    PauliZ,
+    Phase,
+    SwapQubits,
+)
 from geqo.gates.multi_qubit_gates import Toffoli
+from geqo.gates.rotation_gates import Rx, Ry, Rz
 from geqo.operations.controls import QuantumControl
+from geqo.utils._base_.helpers import num2bin
 
 
 class PermuteQubits(QuantumOperation):
@@ -869,3 +882,660 @@ def controlledXGateInternal(controls, ancilla, target, toffoli):
     seq.append((toffoli, [controls[-1]] + ancilla + target))
 
     return Sequence([], controls + target + ancilla, seq)
+
+
+class Pattern:
+    """This class helps create a database of patterns, which are used as replacements for parts of a circuit to reduce circuit depth.
+    The lambda function is necessary for assisiting the `setValue` method in generating replacements."""
+
+    def __init__(self, name, inputSequence, outputSequence, lambdas):
+        """
+        The constructor of this class takes a name as parameter, an input and an output sequence and a list of lambda functions.
+
+        Parameters
+        ----------
+        name : String
+            The name of the pattern.
+        inputSequence : geqo.core.Sequence
+            This sequence represents the pattern that we want to find in a circuit.
+        outputSequence : geqo.core.Sequence
+            This sequence contains the gates that are used to replace the matched input sequence.
+        lambdas
+            A list of lambda functions that allow to map the parameters of the input pattern to the parameters of an output pattern.
+
+        Returns
+        -------
+        geqo.algorithms.Pattern
+            An object of this class that corresponds to a pattern for replacing gates with other gates along with a list of lambda functions that map parameters of the input sequence to parameters of the output sequence.
+        """
+        self.name = name
+        self.inputSequence = inputSequence
+        self.outputSequence = outputSequence
+        self.lambdas = lambdas
+
+    def __repr__(self):
+        """
+        Returns a representation of the object as character string.
+        -------
+        string_representation : String
+            Representation of the object as character string.
+        """
+        return (
+            "Pattern #bits/#quits="
+            + str(len(self.inputSequence.bits))
+            + "/"
+            + str(len(self.inputSequence.qubits))
+            + " and #lamdbas="
+            + str(len(self.lambdas))
+        )
+
+    def unificator(
+        self,
+        pattern: QuantumOperation,
+        target: QuantumOperation,
+        alreadyDefined: dict,
+        alreadyDefinedQubits: dict,
+        alreadyDefinedBits: dict,
+    ):
+        """
+        This function unifies/matches the parameters associated with the same quantum operation.
+
+        Parameters
+        ----------
+        pattern : A quantum operation in the pattern database.
+
+        target: A quantum operation in the target circuit.
+
+        alreadyDefined: A dictionary that stores the mapping between pattern paramters and target parameters.
+
+        alreadyDefinedQubits: A dictionary that stores the mapping between pattern qubits and target qubits.
+
+        alreadyDefinedBits: A dictionary that stores the mapping between pattern bits and target bits.
+
+        Returns
+        -------
+        True/False : whether the unification of the pattern and target quantum operations is possible.
+
+        alreadyDefined: updated mapping of pattern and target parameters.
+
+        alreadyDefinedQubits: updated mapping of pattern and target qubits.
+
+        alreadyDefinedBits: updated mapping of pattern and target bits.
+        """
+        # This cannot match at all.
+        if type(pattern) is not type(target):
+            return False, {}, {}, {}
+
+        if type(pattern) in [BasicGate, InverseBasicGate]:
+            print("check basic gate")
+            if pattern.numberQubits != target.numberQubits:
+                return False, {}, {}, {}
+            if pattern.name in alreadyDefined:
+                if alreadyDefined[pattern.name] == target.name:
+                    # Variable already defined and it is a match.
+                    return (
+                        True,
+                        alreadyDefined,
+                        alreadyDefinedQubits,
+                        alreadyDefinedBits,
+                    )
+                else:
+                    # We have a defined variable, but a mismatch
+                    return False, {}, {}, {}
+                # not already defined, so define it.
+            else:
+                alreadyDefined[pattern.name] = target.name
+                print("add pattern.name/target.name=", pattern.name, target.name)
+                return True, alreadyDefined, alreadyDefinedQubits, alreadyDefinedBits
+
+        elif type(pattern) in [
+            CNOT,
+            SwapQubits,
+            PauliX,
+            PauliY,
+            PauliZ,
+            Hadamard,
+            Toffoli,
+        ]:
+            # Same type is guaranteed above. No parameters to match.
+            return True, alreadyDefined, alreadyDefinedQubits, alreadyDefinedBits
+
+        elif type(pattern) is Sequence:
+            print("check sequence")
+            # Also the bits, qubits and further parameters must match.
+            # We assume that the bits and qubits are in both cases 0 and 1. This must be guaranteed in the
+            # pattern extractor method (remapping of names to indices).
+
+            if len(pattern.bits) != len(target.bits):
+                return False, {}, {}, {}
+            if len(pattern.qubits) != len(target.qubits):
+                return False, {}, {}, {}
+            if len(pattern.gatesAndTargets) != len(target.gatesAndTargets):
+                return False, {}, {}, {}
+
+            for ix in range(len(pattern.gatesAndTargets)):
+                print("run ix=", ix)
+                # Two or three tuples must be the same.
+                if len(pattern.gatesAndTargets[ix]) != len(target.gatesAndTargets[ix]):
+                    return False, {}, {}, {}
+
+                # check the single targets first
+                patternQubits = pattern.gatesAndTargets[ix][1]
+                targetQubits = target.gatesAndTargets[ix][1]
+                for ip in range(len(patternQubits)):
+                    p = patternQubits[ip]
+                    t = targetQubits[ip]
+                    if p not in alreadyDefinedQubits:
+                        print("set qubits", p, "to value", t)
+                        alreadyDefinedQubits[p] = t
+                    elif alreadyDefinedQubits[p] != t:
+                        print(
+                            "mismatch already/target qubits:",
+                            alreadyDefinedQubits[p],
+                            t,
+                        )
+                        return False, {}, {}, {}  # not matching in targets
+                    # else: everything is ok, continue
+
+                if len(pattern.gatesAndTargets[ix]) == 3:
+                    if pattern.gatesAndTargets[ix][2] != target.gatesAndTargets[ix][2]:
+                        return False, {}, {}, {}
+
+                patternGate = pattern.gatesAndTargets[ix][0]
+                targetGate = target.gatesAndTargets[ix][0]
+                res1, res2, resQ, resC = self.unificator(
+                    patternGate,
+                    targetGate,
+                    alreadyDefined,
+                    alreadyDefinedQubits,
+                    alreadyDefinedBits,
+                )
+                print("res1/res2=", res1, res2)
+                if res1 is False:
+                    return False, {}, {}, {}
+                else:
+                    alreadyDefined = res2
+                    alreadyDefinedQubits = resQ
+                    alreadyDefinedBits = resC
+        else:
+            raise Exception("gate not supported:", pattern)
+        return True, alreadyDefined, alreadyDefinedQubits, alreadyDefinedBits
+
+    def replace_recursion(
+        self,
+        pattern: QuantumOperation,
+        substitutions: dict,
+        substitutionsQ: dict,
+        substitutionsC: dict,
+    ):
+        """
+        This function replaces the pattern quantum operation with the quantum operation stored in `substitutions`.
+
+        Parameters
+        ----------
+        pattern : A quantum operation in the pattern database.
+
+        substitutions: A dictionary that stores the matching/unified parameter pairs.
+
+        substitutionsQ: A dictionary that stores the matching/unified qubit pairs.
+
+        substitutionsC: A dictionary that stores the matching/unified bit pairs.
+
+        Returns
+        -------
+        QuantumOperation: The output quantum operation with the replaced parameters.
+        """
+        print("replace_recursion called for", pattern)
+        if type(pattern) is BasicGate:
+            # only substitute if it is not a new one
+            print("replace basic gate")
+            if pattern.name in substitutions:
+                return BasicGate(substitutions[pattern.name], pattern.numberQubits)
+            else:
+                return BasicGate(pattern.name, pattern.numberQubits)
+        elif type(pattern) is InverseBasicGate:
+            # only substitute if it is not a new one
+            print("replace inverse basic gate")
+            if pattern.name in substitutions:
+                return InverseBasicGate(
+                    substitutions[pattern.name], pattern.numberQubits
+                )
+            else:
+                return InverseBasicGate(pattern.name, pattern.numberQubits)
+        elif type(pattern) is Sequence:
+            newGatesAndTargets = []
+            for i in range(len(pattern.gatesAndTargets)):
+                currentGateAndTargets = pattern.gatesAndTargets[i]
+                newGate = self.replace_recursion(
+                    currentGateAndTargets[0],
+                    substitutions,
+                    substitutionsQ,
+                    substitutionsC,
+                )
+                if len(currentGateAndTargets) == 2:
+                    newGatesAndTargets.append(
+                        (newGate, [substitutionsQ[x] for x in currentGateAndTargets[1]])
+                    )
+                else:
+                    newGatesAndTargets.append(
+                        (
+                            newGate,
+                            [substitutionsQ[x] for x in currentGateAndTargets[1]],
+                            [substitutionsC[x] for x in currentGateAndTargets[2]],
+                        )
+                    )
+            return Sequence(
+                [substitutionsC[x] for x in pattern.bits],
+                [substitutionsQ[x] for x in pattern.qubits],
+                newGatesAndTargets,
+            )
+        elif type(pattern) in [
+            CNOT,
+            SwapQubits,
+            PauliX,
+            PauliY,
+            PauliZ,
+            Hadamard,
+            Toffoli,
+        ]:
+            return pattern
+        else:
+            raise Exception("gate not supported:", pattern)
+
+    def replacer(self, target: Sequence):
+        """
+        This function transforms the output sequence of the `Pattern` instance by substituting its parameters
+        based on the mapping from the input sequence to the target sequence.
+
+        Parameters
+        ----------
+        target: The sequence the forms the matching parameter (and qubit) pair with the input sequence of the `Pattern` instance.
+
+        Returns
+        -------
+        replacerPatternSubst: Updated output sequence with the replaced parameters.
+
+        res2: The mapping between the input sequence and the target sequence used for parameter substitution.
+        """
+        res1, res2, resQ, resC = self.unificator(self.inputSequence, target, {}, {}, {})
+        print("res1/res2/resQ/resC=", res1, res2, resQ, resC)
+        if res1 is False:
+            return False
+
+        # Replace everything in the replacement pattern with the found variables.
+        replacerPattern = self.outputSequence
+
+        replacerPatternSubst = self.replace_recursion(replacerPattern, res2, resQ, resC)
+        return replacerPatternSubst, res2
+
+
+def findLongestRunSequence(
+    seq: Sequence, start: int, qubits: List, verbose: bool = False
+):
+    """
+    This function scans through the given sequnce and picks out gates whose qubits are:
+    1. among the specified target qubits and
+    2. not among the qubits involved with the previous operations that contain a non-specified qubit.
+    Ex.1 Given the Sequence([],["0","1","2"],[ (Hadamard(),["0"]), (Hadamard(), ["1"]), (CNOT(),["1","2"]), (Hadamard(),["0"])])
+    and the specified target qubits ["0","1"], the function picks out [(Hadamard(), ['0']), (Hadamard(), ['1']), (Hadamard(), ['0'])]
+    Ex.2 Given the Sequence([],[0,1,2,3],[ (Hadamard(),[0]), (CNOT(),[1,2]), (CNOT(),[2,3]), (CNOT(),[0,2]), (Hadamard(),[0]), (Hadamard(),[1])])
+    and the specified target qubits [0,1,2], the function picks out [(Hadamard(), [0]), (CNOT(), [1, 2]), (Hadamard(), [1])], since
+    (CNOT(),[2,3]) contains the non-specified qubit 3, and (CNOT(),[0,2]), (Hadamard(),[0]) both contain a qubit (2 and 0) that is involved with
+    the previous operation that have a non-specified qubit 3.
+
+    Parameters
+    ----------
+    seq: The sequence to be scanned.
+
+    start: The starting index of the scan.
+
+    qubits: The specified target qubits.
+
+    verbose: Whether to display scan messages.
+
+    Returns
+    -------
+    Sequence: The sequence containig the selected gates.
+
+    gatheredIndices: The indices of the selected gates in the scanned sequence.
+
+    """
+    currentIndex = start
+    gatheredIndices = []
+    burnedQubits = []
+
+    while currentIndex < len(seq.gatesAndTargets):
+        if verbose:
+            print(
+                "start loop at index", currentIndex, "with burned qubits:", burnedQubits
+            )
+        currentGateAndTargets = seq.gatesAndTargets[currentIndex]
+
+        currentGate = currentGateAndTargets[0]
+        currentBits = []
+        currentQubits = []
+        if len(currentGateAndTargets) == 2:
+            currentQubits = currentGateAndTargets[1]
+        elif len(currentGateAndTargets) == 3:
+            currentQubits = currentGateAndTargets[1]
+            currentBits = currentGateAndTargets[2]
+        else:
+            raise Exception(
+                "not 2 or 3 elements as gate and target definition in Sequence"
+            )
+
+        if verbose:
+            print(
+                "now consider gate",
+                currentGate,
+                "at position",
+                currentIndex,
+                "with bits/qubits",
+                currentBits,
+                currentQubits,
+            )
+
+        # Does this gate touch the relevant bits?
+        if len(set(currentQubits).intersection(qubits)) == 0:
+            # This gate has nothing to do with our scanned qubits. Just skip it.
+            if verbose:
+                print("no relevant target qubit here")
+        else:
+            # Check if we touch burned qubits.
+            touchedBurnedQubits = set(burnedQubits).intersection(currentQubits)
+            if verbose:
+                print("we touch these burned qubits:", touchedBurnedQubits)
+
+            # Do we have no burned qubits?
+            burnQubits = []
+            for x in currentQubits:
+                if x not in qubits:
+                    burnQubits.append(x)
+            if verbose:
+                print("we burn these qubits:", burnQubits)
+
+            if len(touchedBurnedQubits) == 0 and len(burnQubits) == 0:
+                if verbose:
+                    print("we can add this index to result:", currentIndex)
+                gatheredIndices.append(currentIndex)
+            else:
+                # we have burned qubits or we touched burned qubits. We must add
+                # all qubits of this gate to burnedQubits
+                if verbose:
+                    print(
+                        "we touched a burned qubit or we have burned qubits, now burn current qubits:",
+                        currentQubits,
+                    )
+                for q in currentQubits:
+                    if q not in burnedQubits:
+                        burnedQubits.append(q)
+
+            # We must add the burned qubits anyways, even if we have already burned qubits.
+            # for b in burnQubits:
+            #    burnedQubits.append(b)
+        if verbose:
+            print("finished with burnedQubits", burnedQubits, "and index", currentIndex)
+        currentIndex += 1
+
+    # Construct the new sequence. All indices must be reduced to 0,1,2...
+    newGatesAndTargets = []
+    for g in gatheredIndices:
+        currentGateAndTarget = seq.gatesAndTargets[g]
+        if len(currentGateAndTarget) == 2:
+            newGatesAndTargets.append(
+                (currentGateAndTarget[0], currentGateAndTarget[1])
+            )
+        elif len(currentGateAndTarget) == 3:
+            newGatesAndTargets.append(
+                (
+                    currentGateAndTarget[0],
+                    currentGateAndTarget[1],
+                    currentGateAndTarget[2],
+                )
+            )
+
+    return Sequence(seq.bits, qubits, newGatesAndTargets), gatheredIndices
+
+
+def getAllLongestRuns(sequence: Sequence, numberQubits: int, verbose: bool = False):
+    """
+    This function scans through the whole sequence in search of potential patterns.
+    The search covers all possible `numberQubits`-combinations of target qubits and
+    progressively accumulates the longest valid subsequences from the beginning of the sequence.
+
+    Parameters
+    ----------
+    sequence: The sequence to be scanned.
+
+    numberQuibits: The number of qubits in a combination.
+
+    verbose: Whether to display scan messages.
+
+    Returns
+    -------
+    candidates: All valid qubit combinations and gate indices that could potentially become patterns.
+
+    gatheredIndices: The indices of the selected gates in the scanned sequence.
+
+    """
+    # We only need combinations. The permutations are not necessary because they
+    # can be treated with unification.
+    candidates = []
+
+    for x in combinations(sequence.qubits, r=numberQubits):
+        if verbose:
+            print("scan qubits", x)
+        currentStartPosition = 0
+        while currentStartPosition < len(sequence.gatesAndTargets):
+            subseq, indexes = findLongestRunSequence(sequence, currentStartPosition, x)
+            if verbose:
+                print("longest run:", indexes)
+            if len(indexes) > 0:
+                # We did find at least one gate in the longest run
+                candidates.append((x, indexes))
+                currentStartPosition = max(indexes) + 1
+            else:
+                # there is not a single useful gate on the scanned qubits; we might have to
+                # skip until we find something again. The single-Stepping here is not efficient at
+                # all, but we have to find the first suitable gate.
+                currentStartPosition = currentStartPosition + 1
+    return candidates
+
+
+def getAllRuns(
+    sequence: Sequence, numberQubits: int, numberGates: int, verbose: bool = False
+):
+    """
+    This function resembles the `getAllLongestRuns` function, except that it imposes a length constraint `numberGates` on the accumulated subsequences.
+
+    Parameters
+    ----------
+    sequence: The sequence to be scanned.
+
+    numberQuibits: The number of qubits in a combination.
+
+    numberGates: The number of gates in a subsequence.
+
+    verbose: Whether to display scan messages.
+
+    Returns
+    -------
+    newCandidates: The updated list of candidates that contain exactly `numberGates` gates in the subsequences.
+
+    """
+    candidates = getAllLongestRuns(sequence, numberQubits, verbose)
+
+    newCandidates = []
+    for cand in candidates:
+        candQubits = cand[0]
+        candGates = cand[1]
+        if len(candGates) >= numberGates:
+            if verbose:
+                print(
+                    "processing candidate",
+                    cand,
+                    "len(candGates)/numberGates",
+                    len(candGates),
+                    numberGates,
+                )
+                for i in range(0, len(candGates) - numberGates + 1):
+                    c = []
+                    for j in range(numberGates):
+                        c.append(candGates[i + j])
+                    print("new candidate:", (candQubits, c))
+                    newCandidates.append((candQubits, c))
+    return newCandidates
+
+
+def unitaryDecomposer(u, decompose_givens: bool = False):
+    """
+    This function decomposes an arbitrary unitary matrix `u` into an equivalent sequence with Toffoli, controlled-rotation, and controlled-phase gates
+
+    Parameters
+    ----------
+    u: The unitary matrix to be decomposed.
+
+    decompose_givens: Whether to decompose the Givens rotation into Ry Rz gates.
+
+    Returns
+    -------
+    seq: The decomposed Sequence instance.
+
+    params: A dictionary storing the parameter values of the sequence.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise ImportError(
+            "NumPy package is required for the `unitaryDecomposer` function."
+        )
+
+    u = np.array(u).astype(np.complex128)
+    u = np.conj(u.T)
+    n = int(np.log2(len(u)))
+
+    params = {}
+
+    op = []
+    for i in range(2**n):
+        for j in range(i + 1, 2**n):
+            # submatrix_ij = [[a,r0],[b,r1]]
+            a = u[i, i]
+            b = u[j, i]
+            r0 = u[
+                i, j
+            ]  # r0 r1 are info for phase correction on the diagonal after applying G
+            r1 = u[j, j]
+            if (
+                np.abs(b) < 1e-9
+            ):  # no need to eliminate if the b is already 0  (avoid numerical error so we set 1e-9)
+                continue
+            norm = np.sqrt(np.abs(a) ** 2 + np.abs(b) ** 2)
+            c = a / norm
+            s = b / norm
+
+            if (
+                decompose_givens
+            ):  # express Givens operator with U(θ,φ,λ) = Rz(φ)Ry(θ)Rz(λ)
+                abs_c_val = min(
+                    1.0, np.abs(c)
+                )  # prevent c from exceeding 1 (due to numerical errors)
+                theta = 2 * np.arccos(abs_c_val)
+                phi = np.angle(c) + np.angle(s) + np.pi
+                lam = np.angle(c) - np.angle(s) - np.pi
+                if np.abs(theta) > 1e-3:
+                    params[f"θ{i}{j}"] = theta
+                if np.abs(phi) > 1e-3:
+                    params[f"φ{i}{j}"] = phi
+                if np.abs(lam) > 1e-3:
+                    params[f"λ{i}{j}"] = lam
+            else:
+                G = np.array([[np.conj(c), np.conj(s)], [-s, c]])
+                params[f"G{i}{j}"] = G
+
+            correction_phase_after_G = -np.angle(-s * r0 + c * r1)
+            if abs(float(correction_phase_after_G)) > 1e-3:
+                params[f"g{i * 2**n + j}"] = correction_phase_after_G
+
+            ibin = num2bin(i, n)
+            jbin = num2bin(j, n)
+            cnot_pair = []
+            first_diff = None
+            for k in range(n):
+                if ibin[k] != jbin[k] and first_diff is None:
+                    first_diff = k
+                elif ibin[k] != jbin[k]:
+                    cnot_pair.append([first_diff, k])
+
+            for pair in cnot_pair:
+                op.append((CNOT(), pair))
+
+            if ibin[first_diff] == 0:
+                ctrl_bits = ibin
+            else:
+                ctrl_bits = jbin
+            del ctrl_bits[first_diff]
+
+            targets = [*range(n)]
+            targets.pop(first_diff)
+            # apply U
+            if decompose_givens:
+                if np.abs(lam) > 1e-3:
+                    op.append(
+                        (
+                            QuantumControl(ctrl_bits, Rz(f"λ{i}{j}")),
+                            targets + [first_diff],
+                        )
+                    )
+                if np.abs(theta) > 1e-3:
+                    op.append(
+                        (
+                            QuantumControl(ctrl_bits, Ry(f"θ{i}{j}")),
+                            targets + [first_diff],
+                        )
+                    )
+                if np.abs(phi) > 1e-3:
+                    op.append(
+                        (
+                            QuantumControl(ctrl_bits, Rz(f"φ{i}{j}")),
+                            targets + [first_diff],
+                        )
+                    )
+            else:
+                op.append(
+                    (
+                        QuantumControl(ctrl_bits, BasicGate(f"G{i}{j}", 1)),
+                        targets + [first_diff],
+                    )
+                )
+
+            # phase correction after G
+            if np.abs(correction_phase_after_G) > 1e-3:
+                op.append(
+                    (
+                        QuantumControl(ctrl_bits, Phase(f"g{i * 2**n + j}")),
+                        targets + [first_diff],
+                    )
+                )
+
+            for pair in reversed(cnot_pair):
+                op.append((CNOT(), pair))
+
+            # update u value (apply G and correction Phase after G)
+            A = np.identity(2**n, dtype=complex)  # embed G
+            A[i, i] = np.conj(c)
+            A[i, j] = np.conj(s)
+            A[j, i] = -s
+            A[j, j] = c
+
+            B = np.identity(2**n, dtype=complex)  # embed Phase correction
+            B[j, j] = np.exp(1j * correction_phase_after_G)
+
+            u = A @ u
+            u = B @ u
+
+    seq = Sequence([], [*range(n)], op)
+    if len(seq.gatesAndTargets) == 0:
+        print("The input matrix is identity. Now decomposition is required.")
+
+    return seq, params
