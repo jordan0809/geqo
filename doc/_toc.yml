@@ -22,6 +22,7 @@ chapters:
   - file: notebooks/QuantumAmplitudeEstimation.ipynb
   - file: notebooks/RiskModel.ipynb
   - file: notebooks/KuperbergSieve.ipynb
+  - file: notebooks/ShorsAlgorithm.ipynb
 - file: advanced_features
   sections:
   - file: notebooks/NameSpace.ipynb

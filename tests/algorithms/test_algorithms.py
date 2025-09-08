@@ -1,15 +1,18 @@
+import numpy as np
 from geqo.algorithms.algorithms import (
+    PCCM,
+    QFT,
+    InversePCCM,
+    InverseQFT,
     PermuteQubits,
     QubitReversal,
-    QFT,
-    InverseQFT,
-    PCCM,
-    InversePCCM,
+    stateInitialize,
 )
 from geqo.core.quantum_circuit import Sequence
-from geqo.gates.fundamental_gates import SwapQubits, Hadamard, Phase, InversePhase
-from geqo.gates.rotation_gates import Rx, Ry, InverseRx, InverseRy
+from geqo.gates.fundamental_gates import Hadamard, InversePhase, Phase, SwapQubits
+from geqo.gates.rotation_gates import InverseRx, InverseRy, Rx, Ry
 from geqo.operations.controls import QuantumControl
+from geqo.simulators.numpy import simulatorStatevectorNumpy
 
 
 class TestAlgorithms:
@@ -183,3 +186,15 @@ class TestAlgorithms:
         assert op.getNumberClassicalBits() == 0
         assert op.isUnitary()
         assert op.hasDecomposition()
+
+    def test_state_initialize(self):
+        state = np.array([1, 2 + 0.5j, 3 - 1.2j, 4])
+        state = state / np.sqrt(np.sum(state * np.conj(state)))
+        seq, params = stateInitialize(state)
+
+        sim = simulatorStatevectorNumpy(0, 2)
+        sim.values = params
+        sim.apply(seq, [0, 1])
+        result = sim.state
+
+        assert np.allclose(state, result.flatten(), rtol=1e-05, atol=1e-06)
