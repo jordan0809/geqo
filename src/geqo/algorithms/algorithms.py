@@ -1,3 +1,4 @@
+import math
 from itertools import combinations
 from typing import List
 
@@ -16,7 +17,8 @@ from geqo.gates.fundamental_gates import (
 from geqo.gates.multi_qubit_gates import Toffoli
 from geqo.gates.rotation_gates import Rx, Ry, Rz
 from geqo.operations.controls import QuantumControl
-from geqo.utils._base_.helpers import num2bin
+from geqo.operations.measurement import Measure
+from geqo.utils._base_.helpers import embedSequences, num2bin
 
 
 class PermuteQubits(QuantumOperation):
@@ -1539,3 +1541,258 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
         print("The input matrix is identity. Now decomposition is required.")
 
     return seq, params
+
+
+def stateInitialize(state):
+    """
+    This function initializes the circuit to a given statevector by applying a set of unitary operations to the [1,0,0,...] state
+
+    Parameters
+    ----------
+    state: The target statevector.
+
+    Returns
+    -------
+    seq: The sequence of unitary operations that prepares the target statevector.
+
+    params: A dictionary storing the parameter values of the sequence.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise ImportError("NumPy is required for the `stateInitialize` function.")
+
+    state = np.array(state)
+    n = len(state.flatten())
+    if not np.log2(n).is_integer():
+        raise ValueError("the number of entries in the state must be a power of 2.")
+
+    state = state.reshape(n, 1)
+    # Use Householder reflection to construct an unitary whose first column corresponds to the given statevector
+    e = np.zeros((n, 1), dtype=np.complex128)
+    e[0] = 1.0
+    w = state - e
+    u = np.identity(n) - 2 * (w @ np.conj(w).T) / (np.conj(w).T @ w)[0]
+
+    seq, params = unitaryDecomposer(u, decompose_givens=True)
+
+    return seq, params
+
+
+def decompose_mcx(onoff: List[int], targets: List[int], num_qubits: int):
+    """
+    This function decomposes a multi-controlled X (MCX) gate into a sequence of Toffoli gates. The method is based on Barenco et al. (1995) Lemma 7.2
+
+    Parameters
+    ----------
+    onoff: The list of control conditions.
+
+    targets: Indices of the target qubits for the MCX gate.
+
+    num_quits: Total number of qubits in the circuit where the gate is embedded.
+
+    Returns
+    -------
+    seq: The decomposed Sequence instance.
+    """
+    m = len(onoff)
+
+    if m > math.floor(num_qubits / 2):
+        raise ValueError(
+            f"maximum number of control qubits is {math.floor(num_qubits / 2)}."
+        )
+    if m < 3:
+        raise ValueError("minimum number of control qubits is 3.")
+
+    last_ctrl = m - 1
+
+    ctrls = targets[:-1]
+    idle = [i for i in range(num_qubits) if i not in targets]
+
+    mapping = [0] * num_qubits
+    mapping[:m] = ctrls
+    mapping[m : num_qubits - 1] = idle
+    mapping[num_qubits - 1] = targets[-1]
+
+    op = [(PauliX(), [t]) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
+
+    op.append(
+        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]])
+    )
+    for i in reversed(range(last_ctrl - 2)):
+        op.append(
+            (
+                Toffoli(),
+                [
+                    mapping[2 + i],
+                    mapping[last_ctrl + 1 + i],
+                    mapping[last_ctrl + 2 + i],
+                ],
+            )
+        )
+    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]]))
+    for i in range(last_ctrl - 2):
+        op.append(
+            (
+                Toffoli(),
+                [
+                    mapping[2 + i],
+                    mapping[last_ctrl + 1 + i],
+                    mapping[last_ctrl + 2 + i],
+                ],
+            )
+        )
+    op.append(
+        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]])
+    )
+
+    for i in reversed(range(last_ctrl - 2)):
+        op.append(
+            (
+                Toffoli(),
+                [
+                    mapping[2 + i],
+                    mapping[last_ctrl + 1 + i],
+                    mapping[last_ctrl + 2 + i],
+                ],
+            )
+        )
+    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]]))
+    for i in range(last_ctrl - 2):
+        op.append(
+            (
+                Toffoli(),
+                [
+                    mapping[2 + i],
+                    mapping[last_ctrl + 1 + i],
+                    mapping[last_ctrl + 2 + i],
+                ],
+            )
+        )
+
+    op.extend(
+        [(PauliX(), [t]) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
+    )
+
+    seq = Sequence([], [*range(num_qubits)], op)
+
+    return seq
+
+
+def Shor(N: int, a: int, decompose: bool = False):
+    """
+    This function generates the quantum circuit for the Shor's algorithm.
+
+    Parameters
+    ----------
+    N: The target integer to be factorized.
+
+    a: The chosen base integer coprime to N.
+
+    decompose: Whether to decompose larger gates (i.e. MCX, controlled-swap, and QFT) in the sequence.
+
+    Returns
+    -------
+    shor_seq: The Shor's Sequence instance.
+    """
+    if math.gcd(a, N) != 1:
+        raise ValueError(f"Please choose an 'a' comprime to {N}")
+
+    n = math.floor(math.log2(N)) + 1
+    powers = [f"p{i}" for i in range(n)]
+    xreg = [f"x{i}" for i in range(n)]
+    ancilla = [f"an{i}" for i in range(n)]
+    measures = [f"c{i}" for i in range(n)]
+
+    # Initialization
+    op = [(PauliX(), [xreg[-1]])]
+    op.extend([(Hadamard(), [powers[i]]) for i in range(n)])
+
+    # modular exponentiation
+    for p in range(n):
+        # CMULT(a) mod N
+        A = a ** (2 ** (n - 1 - p))
+        add_values = [(A * 2**j) % N for j in range(n - 1, -1, -1)]
+        for i in range(n):  # iterate over xreg
+            add_bits = num2bin(add_values[i], n)
+            for idx, b in enumerate(
+                add_bits
+            ):  # iterate over binary representation of add_bits
+                if b == 1:  # perform addition if the bit value is 1
+                    for j in range(idx + 1):  # target qubit index
+                        op.append(
+                            (
+                                QuantumControl([1] * (1 + 1 + idx - j), PauliX()),
+                                [powers[p]]
+                                + [xreg[i]]
+                                + ancilla[j + 1 : idx + 1]
+                                + [ancilla[j]],
+                            )
+                        )
+        # swap
+        op.extend(
+            [
+                (QuantumControl([1], SwapQubits()), [powers[p], xreg[k], ancilla[k]])
+                for k in range(n)
+            ]
+        )
+
+        # inverse CMULT(a^-1) mod N
+        inv_A = pow(A, -1, N)  # modular multiplicative inverse of a
+        minus_values = [(inv_A * 2**j) % N for j in range(n - 1, -1, -1)]
+
+        for i in reversed(range(n)):
+            minus_bits = num2bin(minus_values[i], n)
+            for idx in reversed(range(n)):
+                b = minus_bits[idx]
+                if b == 1:  # perform subtraction if the bit value is 1
+                    for j in reversed(range(idx + 1)):  # target qubit index
+                        op.append(
+                            (
+                                QuantumControl([1] * (1 + 1 + idx - j), PauliX()),
+                                [powers[p]]
+                                + [xreg[i]]
+                                + ancilla[j + 1 : idx + 1]
+                                + [ancilla[j]],
+                            )
+                        )
+
+    # inverse QFT
+    op.append((InverseQFT(n), powers))
+
+    op.append((Measure(n), powers, measures))
+    shor_seq = Sequence(measures, powers + xreg + ancilla, op)
+
+    # decompose  MCX, controlled-swap, and QFT gates in Shor
+    if decompose:
+        op = []
+        count = 0
+        for gnt in shor_seq.gatesAndTargets:
+            gate = gnt[0]
+            targets = gnt[1]
+            if isinstance(gate, QuantumControl):
+                if isinstance(gate.qop, SwapQubits):  # control swap gates
+                    op.append((Toffoli(), targets))
+                    op.append((Toffoli(), [targets[0], targets[2], targets[1]]))
+                    op.append((Toffoli(), targets))
+                elif len(gate.onoff) == 2:  # Toffoli gates
+                    op.append((Toffoli(), targets))
+                else:  # more than 2 controls
+                    if type(targets[0]) is str:  # turn targets into integer indices
+                        int_targets = [shor_seq.qubits.index(t) for t in targets]
+                    else:
+                        int_targets = targets
+                    seq = decompose_mcx(gate.onoff, int_targets, len(shor_seq.qubits))
+                    seq.name = f"s{count}"
+                    count += 1
+                    op.append((seq, shor_seq.qubits))
+            elif isinstance(gate, InverseQFT):
+                qft_seq = gate.getEquivalentSequence()
+                op.append((qft_seq, targets))
+            else:
+                op.append(gnt)
+
+        shor_seq = Sequence(shor_seq.bits, shor_seq.qubits, op)
+        shor_seq = embedSequences(shor_seq)
+
+    return shor_seq
