@@ -1,7 +1,7 @@
 import pytest
 
-from geqo.operations.measurement import DropQubits, Measure
 from geqo.core.quantum_circuit import Sequence
+from geqo.operations.measurement import DropQubits, Measure
 
 
 class TestMeasurementOperations:
@@ -30,7 +30,7 @@ class TestMeasurementOperations:
         assert d.getNumberQubits() == 1
         assert d.getNumberClassicalBits() == 0
         assert not d.isUnitary()
-        assert d.getEquivalentSequence() == Sequence([], [0], [(d, [0])])
+        assert d.getEquivalentSequence() == Sequence([0], [], [(d, [0], [])])
 
         # Test that inverse raises exception
         with pytest.raises(Exception):

@@ -1,54 +1,51 @@
-from geqo.core.basic import BasicGate, InverseBasicGate
+import numpy as np
+import pytest
+import sympy as sym
+from sympy import Rational, S, Symbol
 
-from geqo.gates.fundamental_gates import (
-    PauliX,
-    PauliY,
-    PauliZ,
-    SwapQubits,
-    Hadamard,
-    Phase,
-    InversePhase,
-    CNOT,
-    SGate,
-    InverseSGate,
-)
-from geqo.gates.rotation_gates import (
-    Rx,
-    Ry,
-    Rz,
-    Rzz,
-    InverseRx,
-    InverseRy,
-    InverseRz,
-    InverseRzz,
-)
-from geqo.gates.multi_qubit_gates import Toffoli
 from geqo.algorithms.algorithms import (
-    PermuteQubits,
-    QubitReversal,
     PCCM,
     QFT,
     InversePCCM,
     InverseQFT,
+    PermuteQubits,
+    QubitReversal,
 )
+from geqo.core.basic import BasicGate, InverseBasicGate
 from geqo.core.quantum_circuit import Sequence
-from geqo.initialization.state import SetBits, SetQubits, SetDensityMatrix
-from geqo.operations.measurement import Measure, DropQubits
-from geqo.operations.controls import ClassicalControl, QuantumControl
 from geqo.core.quantum_operation import QuantumOperation
-
+from geqo.gates.fundamental_gates import (
+    CNOT,
+    Hadamard,
+    InversePhase,
+    InverseSGate,
+    PauliX,
+    PauliY,
+    PauliZ,
+    Phase,
+    SGate,
+    SwapQubits,
+)
+from geqo.gates.multi_qubit_gates import Toffoli
+from geqo.gates.rotation_gates import (
+    InverseRx,
+    InverseRy,
+    InverseRz,
+    InverseRzz,
+    Rx,
+    Ry,
+    Rz,
+    Rzz,
+)
+from geqo.initialization.state import SetBits, SetDensityMatrix, SetQubits
+from geqo.operations.controls import ClassicalControl, QuantumControl
+from geqo.operations.measurement import DropQubits, Measure
 from geqo.simulators.sympy.implementation import (
     ensembleSimulatorSymPy,
+    getUnitarySymPy,
     mixedStateSimulatorSymPy,
     simulatorUnitarySymPy,
-    getUnitarySymPy,
 )
-
-import pytest
-from sympy import Symbol, S, Rational
-import sympy as sym
-import numpy as np
-
 
 gates = [
     PauliX(),
@@ -77,16 +74,16 @@ gates = [
 op = []
 for g in gates:
     if g.getNumberQubits() == 1:
-        op.extend([(g, [0]), (g.getInverse(), [0])])
+        op.extend([(g, [0], []), (g.getInverse(), [0], [])])
     else:
-        op.extend([(g, [0, 1]), (g.getInverse(), [0, 1])])
+        op.extend([(g, [0, 1], []), (g.getInverse(), [0, 1], [])])
 
-identity_seq = Sequence([], [0, 1], op)
+identity_seq = Sequence([0, 1], [], op)
 
 
 class TestSympySimulators:
     def test_get_unitary(self):
-        sim = ensembleSimulatorSymPy(0, 2)
+        sim = ensembleSimulatorSymPy(2, 0)
         op1 = BasicGate("a", 1)
         op2 = InverseBasicGate("a", 1)
         matrix = sym.Matrix([[1, 0], [0, 1]])
@@ -128,7 +125,7 @@ class TestSympySimulators:
     def test_ensemble_simulator(self):
         nqubits = 3
         ncbits = 2
-        sim = ensembleSimulatorSymPy(ncbits, nqubits)
+        sim = ensembleSimulatorSymPy(nqubits, ncbits)
         rho = sym.zeros(2**nqubits, 2**nqubits)
         rho[0, 0] = 1
 
@@ -138,7 +135,7 @@ class TestSympySimulators:
         assert sim.values == {}
         assert (
             str(sim)
-            == "ensembleSimulatorSymPy(" + str(ncbits) + ", " + str(nqubits) + ")"
+            == "ensembleSimulatorSymPy(" + str(nqubits) + ", " + str(ncbits) + ")"
         )
 
         sim.setValue("a", 1.23)
@@ -167,15 +164,15 @@ class TestSympySimulators:
     def test_ensemble_simulator_classical_control(self):
         nqubits = 2
         ncbits = 2
-        sim = ensembleSimulatorSymPy(ncbits, nqubits)
+        sim = ensembleSimulatorSymPy(nqubits, ncbits)
         sim.prepareBackend([QFT(2)])
         seq = Sequence(
             [0, 1],
             [0, 1],
             [
-                (Hadamard(), [0]),
+                (Hadamard(), [0], []),
                 (Measure(2), [0, 1], [0, 1]),
-                (ClassicalControl([1, 0], QFT(2)), [0, 1, 0, 1]),
+                (ClassicalControl([1, 0], QFT(2)), [0, 1], [0, 1]),
             ],
         )
         sim.apply(seq, [0, 1], [0, 1])
@@ -282,7 +279,7 @@ class TestSympySimulators:
         sim.apply(Measure(2), [0, 1], [0, 1])
         op = SetBits("sb", 1)
         with pytest.raises(Exception) as exc_info:
-            sim.apply(op, [0])
+            sim.apply(op, [], [0])
         exc = exc_info.value
         assert (
             exc.args[0]
@@ -290,7 +287,7 @@ class TestSympySimulators:
         )
 
         sim.setValue("sb", [1])
-        sim.apply(op, [0])
+        sim.apply(op, [], [0])
         for key in list(sim.ensemble.keys()):
             assert key[0] == 1
 
@@ -359,7 +356,7 @@ class TestSympySimulators:
     def test_mixedstate_simulator(self):
         nqubits = 3
         ncbits = 2
-        sim = mixedStateSimulatorSymPy(ncbits, nqubits, return_density=True)
+        sim = mixedStateSimulatorSymPy(nqubits, ncbits, return_density=True)
         rho = sym.zeros(2**nqubits, 2**nqubits)
         rho[0, 0] = 1
 
@@ -370,7 +367,7 @@ class TestSympySimulators:
         assert sim.values == {}
         assert (
             str(sim)
-            == "mixedStateSimulatorSymPy(" + str(ncbits) + ", " + str(nqubits) + ")"
+            == "mixedStateSimulatorSymPy(" + str(nqubits) + ", " + str(ncbits) + ")"
         )
 
         sim.setValue("a", 1.23)
@@ -448,7 +445,7 @@ class TestSympySimulators:
         sim.apply(Measure(2), [0, 1], [0, 1])
         op = SetBits("sb", 1)
         with pytest.raises(Exception) as exc_info:
-            sim.apply(op, [0])
+            sim.apply(op, [], [0])
         exc = exc_info.value
         assert exc.args[0] == "SetBits not supported by this simulator"
 

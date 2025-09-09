@@ -124,7 +124,7 @@ class BaseQASM(Simulator):
             decom = gate.getEquivalentSequence()
             translated_lines = []
             for item in decom.gatesAndTargets:
-                subgate, targets = item
+                subgate, targets, _ = item
                 translated_lines.append(self.translate_gate(subgate, targets))
             return "\n".join(translated_lines)
         elif isinstance(gate, gates.PauliX):
@@ -455,18 +455,20 @@ class BaseQASM(Simulator):
 
         elif isinstance(gate, ClassicalControl):
             onoff = gate.onoff
-            ctrl_bits = targets[: len(onoff)]
-            target_qubits = targets[len(onoff) :]
+            # ctrl_bits = targets[: len(onoff)]
+            # target_qubits = targets[len(onoff) :]
+            ctrl_bits = bits
+            target_qubits = targets
             if isinstance(gate.qop, QuantumControl):
-                base_line = self.translate_gate(gate.qop, target_qubits)
+                base_line = self.translate_gate(gate.qop, target_qubits, None)
             else:
                 base_line = self.gate_to_qasm(gate.qop, target_qubits)
 
             # Build the nested if block
             if_blocks = []
-            for i, (bit, value) in enumerate(zip(ctrl_bits, onoff)):
+            for i, (b, value) in enumerate(zip(ctrl_bits, onoff)):
                 boolean = "true" if value == 1 else "false"
-                if_blocks.append(f"if (c[{bit}] == {boolean}) " + "{")
+                if_blocks.append(f"if (c[{b}] == {boolean}) " + "{")
 
             result = "\n".join(if_blocks)
             result += f"\n    {base_line}"
@@ -579,7 +581,12 @@ class BaseQASM(Simulator):
             lines.append(f"bit[{num_clbits}] c;")
 
         for item in seq.gatesAndTargets:
-            if len(item) == 2:
+            gate, qubits, bits = item
+            translate_gate_lines = self.translate_gate(gate, qubits, bits)
+            if isinstance(translate_gate_lines, str):
+                lines.append(translate_gate_lines)
+
+            """if len(item) == 2:
                 gate, targets = item
                 translate_gate_lines = self.translate_gate(gate, targets)
                 if isinstance(translate_gate_lines, str):
@@ -588,7 +595,7 @@ class BaseQASM(Simulator):
                 gate, qubits, bits = item
                 translate_gate_lines = self.translate_gate(gate, qubits, bits)
                 if isinstance(translate_gate_lines, str):
-                    lines.append(translate_gate_lines)
+                    lines.append(translate_gate_lines)"""
 
         return "\n".join(lines)
 
@@ -604,7 +611,7 @@ class sequencer(Simulator):
     corresponding Sequence object can be obtained.
     """
 
-    def __init__(self, numberBits: int, numberQubits: int):
+    def __init__(self, numberQubits: int, numberBits: int):
         self.numberBits = numberBits
         self.numberQubits = numberQubits
         self.seq = []
@@ -619,30 +626,45 @@ class sequencer(Simulator):
         classicalTargets=None,
     ):
         if classicalTargets is None:
-            self.seq.append([gate, quantumTargets])
+            self.seq.append([gate, quantumTargets, []])
         else:
-            self.seq.append([gate, classicalTargets, quantumTargets])
+            self.seq.append([gate, quantumTargets, classicalTargets])
 
     def getSequence(self) -> Sequence:
         return Sequence(
-            list(range(self.numberBits)), list(range(self.numberQubits)), self.seq
+            list(range(self.numberQubits)), list(range(self.numberBits)), self.seq
         )
 
 
 class printer(Simulator):
-    def __init__(self, numberQubits: int):
+    def __init__(self, numberQubits: int, numberBits: int):
         self.numberQubits = numberQubits
+        self.numberBits = numberBits
         self.steps = 0
 
     def __repr__(self) -> str:
         return "printer (#steps so far: " + str(self.steps) + ")"
 
-    def apply(self, gate: QuantumOperation | str, targets: list[int]) -> None:
+    def apply(
+        self,
+        gate: QuantumOperation | str,
+        targets: list[int],
+        classicalTargets: list[int] | None = None,
+    ) -> None:
         self.steps = self.steps + 1
-        logger.info(
-            "step %s: we apply gate %s to qubits %s",
-            self.steps,
-            str(gate),
-            str(targets),
-        )
+        if classicalTargets is None:
+            logger.info(
+                "step %s: we apply gate %s to qubits %s",
+                self.steps,
+                str(gate),
+                str(targets),
+            )
+        else:
+            logger.info(
+                "step %s: we apply gate %s to qubits %s and bits %s",
+                self.steps,
+                str(gate),
+                str(targets),
+                str(classicalTargets),
+            )
         return None

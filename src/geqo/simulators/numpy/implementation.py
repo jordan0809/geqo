@@ -186,17 +186,17 @@ def getUnitaryNumpy(gate: QuantumOperation, values: dict) -> np.ndarray:
 
 
 class BaseSimulatorNumpy(BaseQASM):
-    def __init__(self, numberBits: int, numberQubits: int, values: dict):
+    def __init__(self, numberQubits: int, numberBits: int, values: dict):
         """
         The constructor of this simulator takes as parameters the number of classical bits, the number of qubits
         and a list of values, which are needed to run all operations.
 
         Parameters
         ----------
-        numberBits : int
-            The number of classical bits of the simulated system.
         numberQubits : int
             The number of qubits of the simulated system.
+        numberBits : int
+            The number of classical bits of the simulated system.
         values : {key:value}
             A dictionary of keys and values, which are needed for simulating the operations.
 
@@ -243,7 +243,14 @@ class BaseSimulatorNumpy(BaseQASM):
         pass
 
     @abstractmethod
-    def apply(self, gate: QuantumOperation, targets: list[int], *args, **kwargs):
+    def apply(
+        self,
+        gate: QuantumOperation,
+        targets: list[int],
+        classicalTargets: list[int],
+        *args,
+        **kwargs,
+    ):
         """
         Apply an operation to the state, which is currently kept in the simulator.
 
@@ -253,6 +260,8 @@ class BaseSimulatorNumpy(BaseQASM):
             The operation that should be applied.
         targets : list(int)
             The list of qubit indexes, which are the target of the provided operation.
+        classicalTargets : list(int)
+            The list of bit indexes, which are the target of the provided operation.
         """
         pass
 
@@ -290,17 +299,17 @@ class BaseSimulatorNumpy(BaseQASM):
 
 
 class simulatorStatevectorNumpy(BaseSimulatorNumpy):
-    def __init__(self, numberBits: int, numberQubits: int):
+    def __init__(self, numberQubits: int, numberBits: int):
         """
         The constructor of this simulator takes as parameters the number of classical bits, the number of qubits
         and a list of values, which are needed to run all operations.
 
         Parameters
         ----------
-        numberBits : int
-            The number of classical bits of the simulated system.
         numberQubits : int
             The number of qubits of the simulated system.
+        numberBits : int
+            The number of classical bits of the simulated system.
 
         Returns
         -------
@@ -308,7 +317,7 @@ class simulatorStatevectorNumpy(BaseSimulatorNumpy):
             A simulator object, which is based on NumPy.
         """
         values = {}
-        super().__init__(numberBits, numberQubits, values)
+        super().__init__(numberQubits, numberBits, values)
         if self.numberQubits > 32:
             raise NotImplementedError("Too many qubits, limit is 32")
 
@@ -328,7 +337,7 @@ class simulatorStatevectorNumpy(BaseSimulatorNumpy):
         string_representation : String
             Representation of the object as character string.
         """
-        return f"{self.__class__.__name__}({self.numberBits}, {self.numberQubits})"
+        return f"{self.__class__.__name__}({self.numberQubits}, {self.numberBits})"
 
     def prepareBackend(self, operations: list[QuantumOperation]):
         """
@@ -419,7 +428,7 @@ class simulatorStatevectorNumpy(BaseSimulatorNumpy):
         self,
         gate: QuantumOperation,
         targets: list[int],
-        classicalTargets=None,
+        classicalTargets: list[int] | None = None,
     ):
         """
         Apply an operation to the state, which is currently kept in the simulator.
@@ -459,7 +468,32 @@ class simulatorStatevectorNumpy(BaseSimulatorNumpy):
                 bitMapping[dec.bits[x]] = classicalTargets[x]
 
             for d in dec.gatesAndTargets:
-                if len(d) == 2:
+                if len(dec.qubits) > 0:
+                    qkey_type = type(dec.qubits[0])
+                    apply_qtargets = [
+                        qubitMapping[x]
+                        if type(x) is qkey_type
+                        else qubitMapping[dec.qubits[x]]
+                        for x in d[1]
+                    ]
+                else:
+                    apply_qtargets = []
+                if len(dec.bits) > 0:
+                    ckey_type = type(dec.bits[0])
+                    apply_ctargets = [
+                        bitMapping[x]
+                        if type(x) is ckey_type
+                        else bitMapping[dec.bits[x]]
+                        for x in d[2]
+                    ]
+                else:
+                    apply_ctargets = []
+                self.apply(
+                    d[0],
+                    apply_qtargets,
+                    apply_ctargets,
+                )
+                """if len(d) == 2:
                     key_type = type(dec.qubits[0])
                     apply_targets = [
                         qubitMapping[x]
@@ -488,7 +522,7 @@ class simulatorStatevectorNumpy(BaseSimulatorNumpy):
                         d[0],
                         apply_qtargets,
                         apply_ctargets,
-                    )
+                    )"""
 
         elif gate.isUnitary():
             u = getUnitaryNumpy(gate, self.values)

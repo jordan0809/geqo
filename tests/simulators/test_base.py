@@ -1,7 +1,7 @@
 import re
+
 import pytest
 from sympy import Symbol
-from geqo.simulators.base import Simulator, sequencer, printer, BaseQASM
 
 from geqo.algorithms.algorithms import (
     PCCM,
@@ -38,8 +38,9 @@ from geqo.gates.rotation_gates import (
 from geqo.initialization.state import SetBits, SetQubits
 from geqo.operations.controls import ClassicalControl, QuantumControl
 from geqo.operations.measurement import Measure
-from geqo.simulators.sympy.implementation import ensembleSimulatorSymPy
+from geqo.simulators.base import BaseQASM, Simulator, printer, sequencer
 from geqo.simulators.numpy.implementation import simulatorStatevectorNumpy
+from geqo.simulators.sympy.implementation import ensembleSimulatorSymPy
 
 gates = [
     # BasicGate("b", 1),
@@ -79,11 +80,11 @@ gates.extend(qctrl_gates)
 op = []
 for g in gates:
     if g.getNumberQubits() == 1:
-        op.append((g, [0]))
+        op.append((g, [0], []))
     elif g.getNumberQubits() == 2:
-        op.append((g, [0, 1]))
+        op.append((g, [0, 1], []))
     else:
-        op.append((g, [0, 1, 2]))
+        op.append((g, [0, 1, 2], []))
 
 
 class DummySimulator(Simulator):
@@ -118,7 +119,7 @@ class TestBase:
     def test_sequencer(self):
         nbits = 2
         nqubits = 3
-        sim = sequencer(nbits, nqubits)
+        sim = sequencer(nqubits, nbits)
 
         assert sim.numberBits == nbits
         assert sim.numberQubits == nqubits
@@ -132,19 +133,19 @@ class TestBase:
 
         assert str(sim) == "sequencer (#steps so far: " + str(len(sim.seq)) + ")"
         assert sim.seq == [
-            [Hadamard(), [0]],
-            [Rx("a"), [1]],
-            [SGate(), [2]],
+            [Hadamard(), [0], []],
+            [Rx("a"), [1], []],
+            [SGate(), [2], []],
             [Measure(2), [0, 1], [0, 1]],
         ]
 
         sequence = Sequence(
-            [0, 1],
             [0, 1, 2],
+            [0, 1],
             [
-                [Hadamard(), [0]],
-                [Rx("a"), [1]],
-                [SGate(), [2]],
+                [Hadamard(), [0], []],
+                [Rx("a"), [1], []],
+                [SGate(), [2], []],
                 [Measure(2), [0, 1], [0, 1]],
             ],
         )
@@ -152,8 +153,10 @@ class TestBase:
 
     def test_printer(self):
         nqubits = 3
-        sim = printer(nqubits)
+        nbits = 2
+        sim = printer(nqubits, nbits)
         assert sim.numberQubits == nqubits
+        assert sim.numberBits == nbits
         assert sim.steps == 0
 
         assert str(sim) == "printer (#steps so far: " + str(sim.steps) + ")"
@@ -176,7 +179,7 @@ class TestBase:
             + f"Parameters queried from values dictionary: {values}"
         )
 
-        seq = Sequence([0, 1, 2], [0, 1, 2], [(Rx("a"), [0])])
+        seq = Sequence([0, 1, 2], [0, 1, 2], [(Rx("a"), [0], [])])
 
         qasm.apply(seq)
         qasm.sequence_to_qasm3(seq)
@@ -214,14 +217,14 @@ class TestBase:
                 match=re.escape(message),
             ):
                 n = angle.getNumberQubits()
-                seq = Sequence([0, 1, 2], [0, 1, 2], [(angle, [*range(n)])])
+                seq = Sequence([0, 1, 2], [0, 1, 2], [(angle, [*range(n)], [])])
                 sim.sequence_to_qasm3(seq)
 
         with pytest.raises(
             NotImplementedError,
             match=re.escape(f"Unsupported gate/operation: {SetBits('sb', 1)}"),
         ):
-            seq = Sequence([0, 1, 2], [0, 1, 2], [(SetBits("sb", 1), [0])])
+            seq = Sequence([0, 1, 2], [0, 1, 2], [(SetBits("sb", 1), [], [0])])
             sim.sequence_to_qasm3(seq)
 
         with pytest.raises(
@@ -229,7 +232,9 @@ class TestBase:
             match=re.escape(f"Multi-controlled gate not supported: {Hadamard()}"),
         ):
             seq = Sequence(
-                [0, 1, 2], [0, 1, 2], [(QuantumControl([1, 1], Hadamard()), [0, 1, 2])]
+                [0, 1, 2],
+                [0, 1, 2],
+                [(QuantumControl([1, 1], Hadamard()), [0, 1, 2], [])],
             )
             sim.sequence_to_qasm3(seq)
 
@@ -239,9 +244,11 @@ class TestBase:
         sim.prepareBackend(
             [QFT(2), InverseQFT(2), PCCM("a"), InversePCCM("a"), Toffoli()]
         )
-        op.append((ClassicalControl([1], QuantumControl([1], Rzz("a"))), [1, 2, 0, 1]))
-        op.append((QuantumControl([0, 1], PauliX()), [0, 1, 2]))
-        op.append((ClassicalControl([1], Hadamard()), [1, 2]))
+        op.append(
+            (ClassicalControl([1], QuantumControl([1], Rzz("a"))), [2, 0, 1], [1])
+        )
+        op.append((QuantumControl([0, 1], PauliX()), [0, 1, 2], []))
+        op.append((ClassicalControl([1], Hadamard()), [2], [1]))
         op.append((Measure(3), [0, 1, 2], [0, 1, 2]))
         seq = Sequence([0, 1, 2], [0, 1, 2], op)
 
@@ -254,9 +261,11 @@ class TestBase:
         sim.setValue("a", 1.23)
 
         op2 = []
-        op2.append((ClassicalControl([1], QuantumControl([1], Rzz("a"))), [1, 2, 0, 1]))
-        op2.append((ClassicalControl([1], Rzz("a")), [1, 2, 0]))
-        op2.append((ClassicalControl([1], QuantumControl([1], SGate())), [1, 2, 0]))
+        op2.append(
+            (ClassicalControl([1], QuantumControl([1], Rzz("a"))), [2, 0, 1], [1])
+        )
+        op2.append((ClassicalControl([1], Rzz("a")), [2, 0], [1]))
+        op2.append((ClassicalControl([1], QuantumControl([1], SGate())), [2, 0], [1]))
         seq = Sequence([0, 1, 2], [0, 1, 2], op2)
 
         code = sim.sequence_to_qasm3(seq)

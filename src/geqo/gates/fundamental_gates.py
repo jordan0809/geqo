@@ -65,7 +65,7 @@ class PauliX(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """
@@ -169,7 +169,7 @@ class PauliY(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """
@@ -273,7 +273,7 @@ class PauliZ(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """
@@ -377,7 +377,7 @@ class Hadamard(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """
@@ -486,7 +486,7 @@ class Phase(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """
@@ -595,7 +595,7 @@ class InversePhase(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """
@@ -699,7 +699,7 @@ class CNOT(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0, 1], [(self, [0, 1])])
+        return Sequence([0, 1], [], [(self, [0, 1], [])])
 
     def getNumberQubits(self):
         """
@@ -803,7 +803,7 @@ class SwapQubits(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0, 1], [(self, [0, 1])])
+        return Sequence([0, 1], [], [(self, [0, 1], [])])
 
     def getNumberQubits(self):
         """
@@ -910,7 +910,7 @@ class SGate(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """
@@ -1017,7 +1017,7 @@ class InverseSGate(QuantumOperation):
         sequence : geqo.core.Sequence
             An object of the class ```Sequence```  without operations, but with the appropriate bits and qubits.
         """
-        return Sequence([], [0], [(self, [0])])
+        return Sequence([0], [], [(self, [0], [])])
 
     def getNumberQubits(self):
         """

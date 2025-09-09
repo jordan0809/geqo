@@ -1,3 +1,4 @@
+from geqo.core.quantum_circuit import Sequence
 from geqo.gates.fundamental_gates import (
     CNOT,
     Hadamard,
@@ -10,7 +11,6 @@ from geqo.gates.fundamental_gates import (
     SGate,
     SwapQubits,
 )
-from geqo.core.quantum_circuit import Sequence
 
 
 class TestFundamentalGates:
@@ -30,9 +30,9 @@ class TestFundamentalGates:
         assert z == PauliZ()
         assert not z == PauliX()
 
-        assert x.getEquivalentSequence() == Sequence([], [0], [(x, [0])])
-        assert y.getEquivalentSequence() == Sequence([], [0], [(y, [0])])
-        assert z.getEquivalentSequence() == Sequence([], [0], [(z, [0])])
+        assert x.getEquivalentSequence() == Sequence([0], [], [(x, [0], [])])
+        assert y.getEquivalentSequence() == Sequence([0], [], [(y, [0], [])])
+        assert z.getEquivalentSequence() == Sequence([0], [], [(z, [0], [])])
 
         assert x.getNumberQubits() == 1
         assert y.getNumberQubits() == 1
@@ -55,7 +55,7 @@ class TestFundamentalGates:
         assert str(h) == "Hadamard()"
         assert h == Hadamard()
         assert not h == PauliX()
-        assert h.getEquivalentSequence() == Sequence([], [0], [(h, [0])])
+        assert h.getEquivalentSequence() == Sequence([0], [], [(h, [0], [])])
         assert h.getNumberClassicalBits() == 0
         assert h.getNumberQubits() == 1
         assert not h.hasDecomposition()
@@ -73,8 +73,8 @@ class TestFundamentalGates:
         assert ip == InversePhase("test")
         assert not ip == Phase("test")
 
-        assert p.getEquivalentSequence() == Sequence([], [0], [(p, [0])])
-        assert ip.getEquivalentSequence() == Sequence([], [0], [(ip, [0])])
+        assert p.getEquivalentSequence() == Sequence([0], [], [(p, [0], [])])
+        assert ip.getEquivalentSequence() == Sequence([0], [], [(ip, [0], [])])
 
         assert p.getNumberClassicalBits() == 0
         assert ip.getNumberClassicalBits() == 0
@@ -96,7 +96,9 @@ class TestFundamentalGates:
         assert str(cnot) == "CNOT()"
         assert cnot == CNOT()
         assert not cnot == Hadamard()
-        assert cnot.getEquivalentSequence() == Sequence([], [0, 1], [(cnot, [0, 1])])
+        assert cnot.getEquivalentSequence() == Sequence(
+            [0, 1], [], [(cnot, [0, 1], [])]
+        )
         assert cnot.getNumberClassicalBits() == 0
         assert cnot.getNumberQubits() == 2
         assert cnot.isUnitary()
@@ -114,8 +116,8 @@ class TestFundamentalGates:
         assert inv_s == InverseSGate()
         assert not inv_s == SGate()
 
-        assert s.getEquivalentSequence() == Sequence([], [0], [(s, [0])])
-        assert inv_s.getEquivalentSequence() == Sequence([], [0], [(inv_s, [0])])
+        assert s.getEquivalentSequence() == Sequence([0], [], [(s, [0], [])])
+        assert inv_s.getEquivalentSequence() == Sequence([0], [], [(inv_s, [0], [])])
 
         assert s.getNumberClassicalBits() == 0
         assert inv_s.getNumberClassicalBits() == 0
@@ -136,7 +138,9 @@ class TestFundamentalGates:
         assert str(swap) == "SwapQubits()"
         assert swap == SwapQubits()
         assert not swap == PauliX()
-        assert swap.getEquivalentSequence() == Sequence([], [0, 1], [(swap, [0, 1])])
+        assert swap.getEquivalentSequence() == Sequence(
+            [0, 1], [], [(swap, [0, 1], [])]
+        )
         assert swap.getNumberClassicalBits() == 0
         assert swap.getNumberQubits() == 2
         assert swap.getInverse() == swap

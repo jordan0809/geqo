@@ -224,8 +224,6 @@ class BaseSympySimulator(BaseQASM):
 
         Parameters
         ----------
-        numberBits : int
-            The number of classical bits of the simulated system.
         numberQubits : int
             The number of qubits of the simulated system.
         values : {key:value}
@@ -252,7 +250,14 @@ class BaseSympySimulator(BaseQASM):
         pass
 
     @abstractmethod
-    def apply(self, gate: QuantumOperation, targets: list[int], *args, **kwargs):
+    def apply(
+        self,
+        gate: QuantumOperation,
+        targets: list[int],
+        classicalTargets: list[int],
+        *args,
+        **kwargs,
+    ):
         """
         Apply an operation to the quantum state, which is currently kept in the simulator.
 
@@ -262,6 +267,8 @@ class BaseSympySimulator(BaseQASM):
             The operation that should be applied.
         targets : list(int)
             The list of qubit indexes, which are the target of the provided operation.
+        classicalTargets : list(int)
+            The list of bit indexes, which are the target of the provided operation.
         """
         pass
 
@@ -311,17 +318,17 @@ class BaseSympySimulator(BaseQASM):
 
 
 class ensembleSimulatorSymPy(BaseSympySimulator):
-    def __init__(self, numberBits: int, numberQubits: int):
+    def __init__(self, numberQubits: int, numberBits: int):
         """
         The constructor of this simulator takes as parameters the number of classical bits, the number of qubits
         and a list of values, which are needed to run all operations.
 
         Parameters
         ----------
-        numberBits : int
-            The number of classical bits of the simulated system.
         numberQubits : int
             The number of qubits of the simulated system.
+        numberBits : int
+            The number of classical bits of the simulated system.
 
         Returns
         -------
@@ -344,7 +351,7 @@ class ensembleSimulatorSymPy(BaseSympySimulator):
         string_representation : String
             Representation of the object as character string.
         """
-        return f"{self.__class__.__name__}({self.numberBits}, {self.numberQubits})"
+        return f"{self.__class__.__name__}({self.numberQubits}, {self.numberBits})"
 
     def prepareBackend(self, operations: list[QuantumOperation]):
         """
@@ -430,8 +437,10 @@ class ensembleSimulatorSymPy(BaseSympySimulator):
 
         if isinstance(gate, ClassicalControl):
             if gate.qop.isUnitary():
-                controls = targets[: -gate.qop.getNumberQubits()]  # control bits
-                target_qubits = targets[-gate.qop.getNumberQubits() :]
+                # controls = targets[: -gate.qop.getNumberQubits()]  # control bits
+                controls = classicalTargets
+                # target_qubits = targets[-gate.qop.getNumberQubits() :]
+                target_qubits = targets
                 onoffMapping = [controls.index(t) for t in sorted(controls)]
                 condition = [gate.onoff[i] for i in onoffMapping]
 
@@ -512,7 +521,32 @@ class ensembleSimulatorSymPy(BaseSympySimulator):
                     bitMapping[dec.bits[x]] = classicalTargets[x]
 
                 for d in dec.gatesAndTargets:
-                    if len(d) == 2:
+                    if len(dec.qubits) > 0:
+                        qkey_type = type(dec.qubits[0])
+                        apply_qtargets = [
+                            qubitMapping[x]
+                            if type(x) is qkey_type
+                            else qubitMapping[dec.qubits[x]]
+                            for x in d[1]
+                        ]
+                    else:
+                        apply_qtargets = []
+                    if len(dec.bits) > 0:
+                        ckey_type = type(dec.bits[0])
+                        apply_ctargets = [
+                            bitMapping[x]
+                            if type(x) is ckey_type
+                            else bitMapping[dec.bits[x]]
+                            for x in d[2]
+                        ]
+                    else:
+                        apply_ctargets = []
+                    self.apply(
+                        d[0],
+                        apply_qtargets,
+                        apply_ctargets,
+                    )
+                    """if len(d) == 2:
                         # only qubits
                         if isinstance(d[0], ClassicalControl):
                             ckey_type = type(dec.bits[0])
@@ -563,7 +597,7 @@ class ensembleSimulatorSymPy(BaseSympySimulator):
                             # [bitMapping[x] for x in d[2]],
                             apply_qtargets,
                             apply_ctargets,
-                        )
+                        )"""
 
         # If the gate is unitary, then get the matrix and
         # apply it to the right order of qubits.
@@ -674,8 +708,8 @@ class ensembleSimulatorSymPy(BaseSympySimulator):
 
                 # set the bits as defined in SetBits. We must respect a bitMapping
                 s2 = [x for x in s]
-                for ti in range(len(targets)):
-                    s2[targets[ti]] = bitValues[ti]
+                for ti in range(len(classicalTargets)):
+                    s2[classicalTargets[ti]] = bitValues[ti]
                 s3 = tuple(s2)
 
                 if s3 not in newEnsemble:
@@ -740,7 +774,7 @@ class ensembleSimulatorSymPy(BaseSympySimulator):
 
 class mixedStateSimulatorSymPy(ensembleSimulatorSymPy):
     def __init__(
-        self, numberBits: int, numberQubits: int, return_density: bool = False
+        self, numberQubits: int, numberBits: int, return_density: bool = False
     ):
         """
         The constructor of this simulator takes as parameters the number of classical bits, the number of qubits
@@ -748,10 +782,10 @@ class mixedStateSimulatorSymPy(ensembleSimulatorSymPy):
 
         Parameters
         ----------
-        numberBits : int
-            The number of classical bits of the simulated system.
         numberQubits : int
             The number of qubits of the simulated system.
+        numberBits : int
+            The number of classical bits of the simulated system.
         return_density : Bool
             Should the full history of density matrices after measurements be preserved?
 
@@ -760,7 +794,7 @@ class mixedStateSimulatorSymPy(ensembleSimulatorSymPy):
         self : geqo.simulators.sympy.mixedStateSimulatorSymPy
             A simulator object, which is based on SymPy.
         """
-        super().__init__(numberBits, numberQubits)
+        super().__init__(numberQubits, numberBits)
         rho = sym.zeros(2**self.numberQubits, 2**self.numberQubits)
         rho[0, 0] = 1
         self.densityMatrix = rho
@@ -800,7 +834,32 @@ class mixedStateSimulatorSymPy(ensembleSimulatorSymPy):
                     bitMapping[dec.bits[x]] = classicalTargets[x]
 
                 for d in dec.gatesAndTargets:
-                    if len(d) == 2:
+                    if len(dec.qubits) > 0:
+                        qkey_type = type(dec.qubits[0])
+                        apply_qtargets = [
+                            qubitMapping[x]
+                            if type(x) is qkey_type
+                            else qubitMapping[dec.qubits[x]]
+                            for x in d[1]
+                        ]
+                    else:
+                        apply_qtargets = []
+                    if len(dec.bits) > 0:
+                        ckey_type = type(dec.bits[0])
+                        apply_ctargets = [
+                            bitMapping[x]
+                            if type(x) is ckey_type
+                            else bitMapping[dec.bits[x]]
+                            for x in d[2]
+                        ]
+                    else:
+                        apply_ctargets = []
+                    self.apply(
+                        d[0],
+                        apply_qtargets,
+                        apply_ctargets,
+                    )
+                    """if len(d) == 2:
                         # only qubits
                         key_type = type(dec.qubits[0])
                         apply_targets = [
@@ -832,7 +891,7 @@ class mixedStateSimulatorSymPy(ensembleSimulatorSymPy):
                             # [bitMapping[x] for x in d[2]],
                             apply_qtargets,
                             apply_ctargets,
-                        )
+                        )"""
 
         # If the gate is unitary, then get the matrix and
         # apply it to the right order of qubits.

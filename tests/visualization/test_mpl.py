@@ -1,30 +1,11 @@
-from geqo.visualization.mpl import plot_mpl, plot_hist
+import os
+import random
 
-from geqo.core.basic import BasicGate, InverseBasicGate
-from geqo.core.quantum_circuit import Sequence
-from geqo.gates.fundamental_gates import (
-    PauliX,
-    PauliY,
-    PauliZ,
-    SwapQubits,
-    Hadamard,
-    Phase,
-    InversePhase,
-    CNOT,
-    SGate,
-    InverseSGate,
-)
-from geqo.gates.multi_qubit_gates import Toffoli
-from geqo.gates.rotation_gates import (
-    Rx,
-    Ry,
-    Rz,
-    Rzz,
-    InverseRx,
-    InverseRy,
-    InverseRz,
-    InverseRzz,
-)
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from sympy import Symbol
+
 from geqo.algorithms.algorithms import (
     PCCM,
     QFT,
@@ -33,21 +14,40 @@ from geqo.algorithms.algorithms import (
     PermuteQubits,
     QubitReversal,
 )
-from geqo.initialization.state import SetBits, SetQubits, SetDensityMatrix
+from geqo.core.basic import BasicGate, InverseBasicGate
+from geqo.core.quantum_circuit import Sequence
+from geqo.gates.fundamental_gates import (
+    CNOT,
+    Hadamard,
+    InversePhase,
+    InverseSGate,
+    PauliX,
+    PauliY,
+    PauliZ,
+    Phase,
+    SGate,
+    SwapQubits,
+)
+from geqo.gates.multi_qubit_gates import Toffoli
+from geqo.gates.rotation_gates import (
+    InverseRx,
+    InverseRy,
+    InverseRz,
+    InverseRzz,
+    Rx,
+    Ry,
+    Rz,
+    Rzz,
+)
+from geqo.initialization.state import SetBits, SetDensityMatrix, SetQubits
 from geqo.operations.controls import ClassicalControl, QuantumControl
-from geqo.operations.measurement import Measure, DropQubits
+from geqo.operations.measurement import DropQubits, Measure
+from geqo.simulators.numpy.implementation import simulatorStatevectorNumpy
 from geqo.simulators.sympy.implementation import (
     ensembleSimulatorSymPy,
     mixedStateSimulatorSymPy,
 )
-from geqo.simulators.numpy.implementation import simulatorStatevectorNumpy
-
-import matplotlib.pyplot as plt
-from sympy import Symbol
-import numpy as np
-import pytest
-import random
-import os
+from geqo.visualization.mpl import plot_hist, plot_mpl
 
 nongate = [1, 2, 3]
 jos = BasicGate("JoS", 2)
@@ -90,80 +90,80 @@ classical_qctrl = ClassicalControl([1, 0], cqft)
 subseq = Sequence(
     [0, 1, 2],
     [0, 1, 2],
-    [(Hadamard(), [2]), (CNOT(), [1, 0]), (SwapQubits(), [0, 2])],
+    [(Hadamard(), [2], []), (CNOT(), [1, 0], []), (SwapQubits(), [0, 2], [])],
     name="sbsq",
 )
 
 
 operations = [
-    (nongate, [1]),
-    (nongate, [0, 1, 2]),
-    (PauliZ(), [4]),
-    (PauliY(), [3]),
-    (PauliX(), [2]),
-    (ch, [3, 0]),
-    (SGate(), [4]),
-    (InverseSGate(), [5]),
-    (Phase("alpha"), [1]),
-    (InversePhase("beta"), [0]),
-    (cp, [1, 4, 5]),
-    (cs, [1, 1]),
-    (Rx("gamma"), [0]),
-    (Ry("lambda"), [1]),
-    (Rz("kappa"), [2]),
-    (cry, [4, 1]),
-    (InverseRx("x"), [5]),
-    (InverseRz("z"), [0]),
-    (InverseRzz("g"), [5, 3]),
-    (crzz, [0, 3, 5, 1, 4]),
-    (CNOT(), [3, 0]),
-    (Toffoli(), [0, 4, 2]),
-    (Toffoli(), [1, 3, 5]),
-    (Toffoli(), [4, 5, 1]),
-    (cccx, [0, 1, 4, 3]),
-    (SwapQubits(), [2, 5]),
-    (QubitReversal(5), [2, 3, 0, 4, 1]),
-    (cswap, [0, 3, 2, 5]),
-    (cr, [5, 2, 0, 4, 1]),
-    (perm, [1, 3, 5]),
-    (QFT(3), [2, 3, 0]),
-    (InverseQFT(2), [4, 5]),
-    (cqft, [0, 1, 5, 4, 2, 3]),
-    (jos, [0, 1]),
-    (cjos, [4, 0, 3, 2]),
-    (cjos, [0, 2, 1, 3]),
-    (cwow, [4, 2, 3, 0, 1]),
-    (cwow, [0, 3, 1, 2, 5]),
-    (cgeqo, [5, 0, 2, 4, 3, 1]),
-    (PCCM("psi"), [4, 1]),
-    (InversePCCM("omega"), [1, 2]),
-    (cpcm, [0, 3, 2, 5]),
-    (cperm, [2, 3, 4, 5]),
-    (drop, [2, 4]),
-    (s1, [1, 3, 4]),
-    (s2, [0, 5]),
-    (s3, [2]),
-    (sq, [1, 4, 5]),
-    (sq2, [3]),
-    (sden, [0, 3, 2]),
-    (sden2, [5]),
-    (subseq, [4, 2, 3]),
-    (classical_jos, [0, 3, 5, 1, 4]),
-    (classical_h, [2, 2]),
+    (nongate, [1], []),
+    (nongate, [0, 1, 2], []),
+    (PauliZ(), [4], []),
+    (PauliY(), [3], []),
+    (PauliX(), [2], []),
+    (ch, [3, 0], []),
+    (SGate(), [4], []),
+    (InverseSGate(), [5], []),
+    (Phase("alpha"), [1], []),
+    (InversePhase("beta"), [0], []),
+    (cp, [1, 4, 5], []),
+    (cs, [1, 1], []),
+    (Rx("gamma"), [0], []),
+    (Ry("lambda"), [1], []),
+    (Rz("kappa"), [2], []),
+    (cry, [4, 1], []),
+    (InverseRx("x"), [5], []),
+    (InverseRz("z"), [0], []),
+    (InverseRzz("g"), [5, 3], []),
+    (crzz, [0, 3, 5, 1, 4], []),
+    (CNOT(), [3, 0], []),
+    (Toffoli(), [0, 4, 2], []),
+    (Toffoli(), [1, 3, 5], []),
+    (Toffoli(), [4, 5, 1], []),
+    (cccx, [0, 1, 4, 3], []),
+    (SwapQubits(), [2, 5], []),
+    (QubitReversal(5), [2, 3, 0, 4, 1], []),
+    (cswap, [0, 3, 2, 5], []),
+    (cr, [5, 2, 0, 4, 1], []),
+    (perm, [1, 3, 5], []),
+    (QFT(3), [2, 3, 0], []),
+    (InverseQFT(2), [4, 5], []),
+    (cqft, [0, 1, 5, 4, 2, 3], []),
+    (jos, [0, 1], []),
+    (cjos, [4, 0, 3, 2], []),
+    (cjos, [0, 2, 1, 3], []),
+    (cwow, [4, 2, 3, 0, 1], []),
+    (cwow, [0, 3, 1, 2, 5], []),
+    (cgeqo, [5, 0, 2, 4, 3, 1], []),
+    (PCCM("psi"), [4, 1], []),
+    (InversePCCM("omega"), [1, 2], []),
+    (cpcm, [0, 3, 2, 5], []),
+    (cperm, [2, 3, 4, 5], []),
+    (drop, [2, 4], []),
+    (s1, [], [1, 3, 4]),
+    (s2, [], [0, 5]),
+    (s3, [], [2]),
+    (sq, [1, 4, 5], []),
+    (sq2, [3], []),
+    (sden, [0, 3, 2], []),
+    (sden2, [5], []),
+    (subseq, [4, 2, 3], []),
+    (classical_jos, [1, 4], [0, 3, 5]),
+    (classical_h, [2], [2]),
     (measure, [0, 2, 3, 5], [0, 2, 3, 5]),
-    (ccjos, [0, 1, 2, 3, 4, 5]),
-    (ccnot, [2, 4, 1]),
-    (ccnot, [1, 4, 1]),
-    (ctoffoli, [5, 0, 3, 2]),
-    (classical_not, [0, 1, 4]),
-    (classical_not, [0, 3, 2]),
-    (classical_cnot, [3, 5, 2]),
-    (classical_toffoli, [2, 1, 0, 5]),
-    (classical_swap, [1, 2, 3]),
-    (classical_qctrl, [2, 4, 0, 1, 2, 3, 4, 5]),
-    (classical_qctrl, [2, 3, 0, 3, 2, 1, 4, 5]),
+    (ccjos, [0, 1, 2, 3, 4, 5], []),
+    (ccnot, [2, 4, 1], []),
+    (ccnot, [1, 4, 1], []),
+    (ctoffoli, [5, 0, 3, 2], []),
+    (classical_not, [4], [0, 1]),
+    (classical_not, [2], [0, 3]),
+    (classical_cnot, [5, 2], [3]),
+    (classical_toffoli, [1, 0, 5], [2]),
+    (classical_swap, [2, 3], [1]),
+    (classical_qctrl, [0, 1, 2, 3, 4, 5], [2, 4]),
+    (classical_qctrl, [0, 3, 2, 1, 4, 5], [2, 3]),
     (Measure(1), [3], [4]),
-    (DropQubits(1), [0]),
+    (DropQubits(1), [0], []),
 ]
 
 qubits = [f"q_{i}" for i in range(6)]
@@ -272,7 +272,7 @@ class TestVisualization:
             TypeError,
             match="Non-unitary operations are not eligible targets for QuantumControl",
         ):
-            seq = Sequence([0, 1, 2], [0, 1, 2], [(op, [0, 1, 2])])
+            seq = Sequence([0, 1, 2], [0, 1, 2], [(op, [0, 1, 2], [])])
             plot_mpl(seq)
             plt.close()
 
@@ -329,7 +329,7 @@ class TestVisualization:
         matplotlib.use("Agg")
         for n in range(5, 8):
             names = [f"a_{i}" for i in range(n)]
-            op = [(Ry(names[i]), [i]) for i in range(n)]
+            op = [(Ry(names[i]), [i], []) for i in range(n)]
             op.append((Measure(n), [*range(n)], [*range(n)]))
             seq = Sequence([*range(n)], [*range(n)], op)
             sim1 = mixedStateSimulatorSymPy(n, n)
@@ -355,7 +355,7 @@ class TestVisualization:
 
         matplotlib.use("Agg")
         names = [f"a_{i}" for i in range(3)]
-        op = [(Ry(names[i]), [i]) for i in range(3)]
+        op = [(Ry(names[i]), [i], []) for i in range(3)]
         op.append((Measure(3), [*range(3)], [*range(3)]))
         seq = Sequence([*range(3)], [*range(3)], op)
         sim = ensembleSimulatorSymPy(3, 3)
