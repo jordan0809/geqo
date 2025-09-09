@@ -11,6 +11,7 @@ from geqo.algorithms.algorithms import (
     PermuteQubits,
     QubitReversal,
 )
+from geqo.core.basic import BasicGate, InverseBasicGate
 from geqo.core.quantum_circuit import Sequence
 from geqo.gates.fundamental_gates import (
     CNOT,
@@ -227,17 +228,6 @@ class TestBase:
             seq = Sequence([0, 1, 2], [0, 1, 2], [(SetBits("sb", 1), [], [0])])
             sim.sequence_to_qasm3(seq)
 
-        with pytest.raises(
-            NotImplementedError,
-            match=re.escape(f"Multi-controlled gate not supported: {Hadamard()}"),
-        ):
-            seq = Sequence(
-                [0, 1, 2],
-                [0, 1, 2],
-                [(QuantumControl([1, 1], Hadamard()), [0, 1, 2], [])],
-            )
-            sim.sequence_to_qasm3(seq)
-
         # test sympy simulator
         sim.setValue("a", Symbol("a"))
         sim.setValue("sq", [1])
@@ -253,7 +243,7 @@ class TestBase:
         seq = Sequence([0, 1, 2], [0, 1, 2], op)
 
         code = sim.sequence_to_qasm3(seq)
-        expected = "OPENQASM 3.0; \ninclude 'stdgates.inc';\ngate rzz(theta) a, b {\n            cx a, b;\n            rz(theta) b;\n            cx a, b;\n        }\ngate cs a, b {\n            p(pi/4) a;\n            p(pi/4) b;\n            cx a, b;\n            p(-pi/4) b;\n            cx a, b;\n        }\ngate crzz(theta) a, b, c {\n            ccx a, b, c;\n            crz(theta) a, c;\n            ccx a, b, c;\n        }\ninput float a;\nqubit[3] q;\nbit[3] c;\nx q[0];\ny q[0];\nz q[0];\nh q[0];\np(a) q[0];\np(-a) q[0];\ncx q[0], q[1];\ns q[0];\nsdg q[0];\nrx(a) q[0];\nry(a) q[0];\nrz(a) q[0];\nrzz(a) q[0], q[1];\nrx(-a) q[0];\nry(-a) q[0];\nrz(-a) q[0];\nrzz(-a) q[0], q[1];\nswap q[0], q[1];\nx q[0];\ncry(a) q[0], q[1];\nx q[0];\nswap q[0], q[1];\nswap q[0], q[1];\nh q[0];\ncp(1.5707963267948966) q[1], q[0];\nh q[1];\nswap q[0], q[1];\nswap q[0], q[1];\nh q[1];\ncp(-1.5707963267948966) q[1], q[0];\nh q[0];\nrx(1.5707963267948966) q[0];\nrx(1.5707963267948966) q[1];\ncrx(a) q[0], q[1];\ncrx(-1.5707963267948966) q[1], q[0];\nrx(-1.5707963267948966) q[0];\nry(-1.5707963267948966) q[1];\nry(--1.5707963267948966) q[1];\nrx(--1.5707963267948966) q[0];\ncrx(--1.5707963267948966) q[1], q[0];\ncrx(-a) q[0], q[1];\nrx(-1.5707963267948966) q[1];\nrx(-1.5707963267948966) q[0];\nreset q[0];\nx q[0];\nccx q[0], q[1], q[2];\ncx q[0], q[1];\ncy q[0], q[1];\ncz q[0], q[1];\nch q[0], q[1];\ncp(a) q[0], q[1];\ncp(-a) q[0], q[1];\nccx q[0], q[1], q[2];\ncs q[0], q[1];\np(-pi/4) q[1];\np(-pi/4) q[0];\ncx q[0], q[1];\np(pi/4) q[1];\ncx q[0], q[1];\ncrx(a) q[0], q[1];\ncry(a) q[0], q[1];\ncrz(a) q[0], q[1];\ncrzz(a) q[0], q[1], q[2];\ncrx(-a) q[0], q[1];\ncry(-a) q[0], q[1];\ncrz(-a) q[0], q[1];\ncrzz(-a) q[0], q[1], q[2];\nif (c[1] == true) {\n    crzz(a) q[2], q[0], q[1];\n}\nx q[0];\nccx q[0], q[1], q[2];\nx q[0];\nif (c[1] == true) {\n    h q[2];\n}\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\nmeasure q[2] -> c[2];"
+        expected = "OPENQASM 3.0; \ninclude 'stdgates.inc';\ngate rzz(theta) a, b {\n                cx a, b;\n                rz(theta) b;\n                cx a, b;\n            }\ninput float a;\nqubit[3] q;\nbit[3] c;\nx q[0];\ny q[0];\nz q[0];\nh q[0];\np(a) q[0];\np(-a) q[0];\ncx q[0], q[1];\ns q[0];\nsdg q[0];\nrx(a) q[0];\nry(a) q[0];\nrz(a) q[0];\nrzz(a) q[0], q[1];\nrx(-a) q[0];\nry(-a) q[0];\nrz(-a) q[0];\nrzz(-a) q[0], q[1];\nswap q[0], q[1];\nx q[0];\nctrl(1) @ ry(a) q[0], q[1];\nx q[0];\nswap q[0], q[1];\nswap q[0], q[1];\nh q[0];\nctrl(1) @ p(1.5707963267948966) q[1], q[0];\nh q[1];\nswap q[0], q[1];\nswap q[0], q[1];\nh q[1];\nctrl(1) @ p(-1.5707963267948966) q[1], q[0];\nh q[0];\nrx(1.5707963267948966) q[0];\nrx(1.5707963267948966) q[1];\nctrl(1) @ rx(a) q[0], q[1];\nctrl(1) @ rx(-1.5707963267948966) q[1], q[0];\nrx(-1.5707963267948966) q[0];\nry(-1.5707963267948966) q[1];\nry(--1.5707963267948966) q[1];\nrx(--1.5707963267948966) q[0];\nctrl(1) @ rx(--1.5707963267948966) q[1], q[0];\nctrl(1) @ rx(-a) q[0], q[1];\nrx(-1.5707963267948966) q[1];\nrx(-1.5707963267948966) q[0];\nreset q[0];\nx q[0];\nccx q[0], q[1], q[2];\nctrl(1) @ x q[0], q[1];\nctrl(1) @ y q[0], q[1];\nctrl(1) @ z q[0], q[1];\nctrl(1) @ h q[0], q[1];\nctrl(1) @ p(a) q[0], q[1];\nctrl(1) @ p(-a) q[0], q[1];\nctrl(1) @ cx q[0], q[1], q[2];\nctrl(1) @ s q[0], q[1];\nctrl(1) @ sdg q[0], q[1];\nctrl(1) @ rx(a) q[0], q[1];\nctrl(1) @ ry(a) q[0], q[1];\nctrl(1) @ rz(a) q[0], q[1];\nctrl(1) @ rzz(a) q[0], q[1], q[2];\nctrl(1) @ rx(-a) q[0], q[1];\nctrl(1) @ ry(-a) q[0], q[1];\nctrl(1) @ rz(-a) q[0], q[1];\nctrl(1) @ rzz(-a) q[0], q[1], q[2];\nif (c[1] == true) {\n    ctrl(1) @ rzz(a) q[2], q[0], q[1];\n}\nx q[0];\nctrl(2) @ x q[0], q[1], q[2];\nx q[0];\nif (c[1] == true) {\n    h q[2];\n}\nmeasure q[0] -> c[0];\nmeasure q[1] -> c[1];\nmeasure q[2] -> c[2];"
         assert code == expected
 
         # test numpy simulator
@@ -269,5 +259,30 @@ class TestBase:
         seq = Sequence([0, 1, 2], [0, 1, 2], op2)
 
         code = sim.sequence_to_qasm3(seq)
-        expected = "OPENQASM 3.0; \ninclude 'stdgates.inc';\ngate crzz(theta) a, b, c {\n            ccx a, b, c;\n            crz(theta) a, c;\n            ccx a, b, c;\n        }\ngate rzz(theta) a, b {\n            cx a, b;\n            rz(theta) b;\n            cx a, b;\n        }\ngate cs a, b {\n            p(pi/4) a;\n            p(pi/4) b;\n            cx a, b;\n            p(-pi/4) b;\n            cx a, b;\n        }\nqubit[3] q;\nbit[3] c;\nif (c[1] == true) {\n    crzz(1.23) q[2], q[0], q[1];\n}\nif (c[1] == true) {\n    rzz(1.23) q[2], q[0];\n}\nif (c[1] == true) {\n    cs q[2], q[0];\n}"
+        expected = "OPENQASM 3.0; \ninclude 'stdgates.inc';\ngate rzz(theta) a, b {\n                cx a, b;\n                rz(theta) b;\n                cx a, b;\n            }\nqubit[3] q;\nbit[3] c;\nif (c[1] == true) {\n    ctrl(1) @ rzz(1.23) q[2], q[0], q[1];\n}\nif (c[1] == true) {\n    rzz(1.23) q[2], q[0];\n}\nif (c[1] == true) {\n    ctrl(1) @ s q[2], q[0];\n}"
+        assert code == expected
+
+        # test BasicGate
+        sim = simulatorStatevectorNumpy(3, 1)
+        op3 = [
+            (BasicGate("a", 2), ["a", "b"], ["1"]),
+            (QuantumControl([1], BasicGate("a", 2)), ["c", "b", "a"], []),
+            (ClassicalControl([0], BasicGate("a", 2)), [1, 0], ["1"]),
+            (
+                ClassicalControl([1], QuantumControl([0], InverseBasicGate("b", 1))),
+                [0, 2],
+                [0],
+            ),
+            (PauliX(), ["b"], []),
+        ]
+
+        seq = Sequence(["a", "b", "c"], ["1"], op3)
+
+        ua = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]]
+        s = 0.5**0.5
+        ub = [[s, s], [s, -s]]
+        sim.setValue("a", ua)
+        sim.setValue("b", ub)
+        code = sim.sequence_to_qasm3(seq)
+        expected = "OPENQASM 3.0; \ninclude 'stdgates.inc';\nqubit[3] q;\nbit[1] c;\ncx q[0], q[1];\nx q[1];\nctrl(1) @ rz(-3.141592653589793) q[1], q[0];\nx q[1];\nx q[1];\nctrl(1) @ ry(3.141592653589793) q[1], q[0];\nx q[1];\nx q[1];\nctrl(1) @ rz(3.141592653589793) q[1], q[0];\nx q[1];\nx q[1];\nctrl(1) @ p(-3.141592653589793) q[1], q[0];\nx q[1];\ncx q[0], q[1];\ncx q[0], q[1];\nctrl(1) @ rz(-3.141592653589793) q[1], q[0];\nctrl(1) @ ry(3.141592653589793) q[1], q[0];\nctrl(1) @ rz(3.141592653589793) q[1], q[0];\nctrl(1) @ p(-3.141592653589793) q[1], q[0];\ncx q[0], q[1];\nctrl(1) @ cx q[2], q[1], q[0];\nx q[0];\nctrl(2) @ rz(-3.141592653589793) q[2], q[0], q[1];\nx q[0];\nx q[0];\nctrl(2) @ ry(3.141592653589793) q[2], q[0], q[1];\nx q[0];\nx q[0];\nctrl(2) @ rz(3.141592653589793) q[2], q[0], q[1];\nx q[0];\nx q[0];\nctrl(2) @ p(-3.141592653589793) q[2], q[0], q[1];\nx q[0];\nctrl(1) @ cx q[2], q[1], q[0];\nctrl(1) @ cx q[2], q[1], q[0];\nctrl(2) @ rz(-3.141592653589793) q[2], q[0], q[1];\nctrl(2) @ ry(3.141592653589793) q[2], q[0], q[1];\nctrl(2) @ rz(3.141592653589793) q[2], q[0], q[1];\nctrl(2) @ p(-3.141592653589793) q[2], q[0], q[1];\nctrl(1) @ cx q[2], q[1], q[0];\nif (c[0] == false) {\n    cx q[1], q[0];\n}\nif (c[0] == false) {\n    x q[0];\nctrl(1) @ rz(-3.141592653589793) q[0], q[1];\nx q[0];\n}\nif (c[0] == false) {\n    x q[0];\nctrl(1) @ ry(3.141592653589793) q[0], q[1];\nx q[0];\n}\nif (c[0] == false) {\n    x q[0];\nctrl(1) @ rz(3.141592653589793) q[0], q[1];\nx q[0];\n}\nif (c[0] == false) {\n    x q[0];\nctrl(1) @ p(-3.141592653589793) q[0], q[1];\nx q[0];\n}\nif (c[0] == false) {\n    cx q[1], q[0];\n}\nif (c[0] == false) {\n    cx q[1], q[0];\n}\nif (c[0] == false) {\n    ctrl(1) @ rz(-3.141592653589793) q[0], q[1];\n}\nif (c[0] == false) {\n    ctrl(1) @ ry(3.141592653589793) q[0], q[1];\n}\nif (c[0] == false) {\n    ctrl(1) @ rz(3.141592653589793) q[0], q[1];\n}\nif (c[0] == false) {\n    ctrl(1) @ p(-3.141592653589793) q[0], q[1];\n}\nif (c[0] == false) {\n    cx q[1], q[0];\n}\nif (c[0] == true) {\n    x q[0];\nctrl(1) @ rz(-3.141592653589793) q[0], q[2];\nx q[0];\n}\nif (c[0] == true) {\n    x q[0];\nctrl(1) @ ry(1.5707963267948966) q[0], q[2];\nx q[0];\n}\nif (c[0] == true) {\n    x q[0];\nctrl(1) @ rz(3.141592653589793) q[0], q[2];\nx q[0];\n}\nif (c[0] == true) {\n    x q[0];\nctrl(1) @ p(-3.141592653589793) q[0], q[2];\nx q[0];\n}\nx q[1];"
         assert code == expected
