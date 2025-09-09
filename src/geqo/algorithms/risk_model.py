@@ -1,9 +1,11 @@
-import numpy as np
 import math
-from geqo.operations.controls import QuantumControl
-from geqo.core.quantum_circuit import Sequence
-from geqo.core.basic import BasicGate
+
+import numpy as np
 import sympy as sym
+
+from geqo.core.basic import BasicGate
+from geqo.core.quantum_circuit import Sequence
+from geqo.operations.controls import QuantumControl
 
 
 def getRY(phi):
@@ -84,7 +86,7 @@ def RiskModel(
             # This risk item is not triggered by transitions.
             # Just put an uncontrolled gate in for it.
             newGate, newValue = getRY(2 * math.asin(math.sqrt(mat[target, target])))
-            gatelist.append((newGate, [str(target)]))
+            gatelist.append((newGate, [str(target)], []))
             collectedValues[newGate.name] = newValue
             # qc.ry(2 * math.asin(math.sqrt(mat[target, target])), qr[target])
         else:
@@ -96,7 +98,7 @@ def RiskModel(
 
             # initializing at inherent probability
             newGate, newValue = getRY(2 * math.asin(math.sqrt(mat[target, target])))
-            gatelist.append((newGate, [str(target)]))
+            gatelist.append((newGate, [str(target)], []))
             collectedValues[newGate.name] = newValue
 
             # Iterate over all subsets of control qubits using binary configurations
@@ -127,10 +129,11 @@ def RiskModel(
                             newGate,
                         ),
                         [str(x) for x in controllist],
+                        [],
                     )
                 )
                 collectedValues[newGate.name] = newValue
 
     return Sequence(
-        [], [str(x) for x in list(range(len(nodes)))], gatelist
+        [str(x) for x in list(range(len(nodes)))], [], gatelist
     ), collectedValues

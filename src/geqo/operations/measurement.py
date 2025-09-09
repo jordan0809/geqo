@@ -74,7 +74,7 @@ class Measure(QuantumOperation):
         allQubits = list(range(numberQubits))
         numberBits = self.getNumberQubits()
         allBits = list(range(numberBits))
-        return Sequence(allBits, allQubits, [(self, allQubits, allBits)])
+        return Sequence(allQubits, allBits, [(self, allQubits, allBits)])
 
     def getNumberQubits(self):
         """
@@ -187,7 +187,7 @@ class DropQubits(QuantumOperation):
         allQubits = list(range(numberQubits))
         numberBits = self.getNumberClassicalBits()
         allBits = list(range(numberBits))
-        return Sequence(allBits, allQubits, [(self, allQubits)])
+        return Sequence(allQubits, allBits, [(self, allQubits, allBits)])
 
     def getNumberQubits(self):
         """

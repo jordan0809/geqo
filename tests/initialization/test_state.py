@@ -1,6 +1,7 @@
-from geqo.core.quantum_circuit import Sequence
-from geqo.initialization.state import SetBits, SetQubits, SetDensityMatrix
 import pytest
+
+from geqo.core.quantum_circuit import Sequence
+from geqo.initialization.state import SetBits, SetDensityMatrix, SetQubits
 
 
 class TestIntialization:
@@ -20,7 +21,7 @@ class TestIntialization:
         assert exc.args[0] == "SetBits has no inverse"
 
         assert op.getEquivalentSequence() == Sequence(
-            [0], [], [(SetBits("sb", 1), [0])]
+            [], [0], [(SetBits("sb", 1), [], [0])]
         )
         assert op.getNumberQubits() == 0
         assert op.getNumberClassicalBits() == 1
@@ -43,7 +44,7 @@ class TestIntialization:
         assert exc.args[0] == "SetQubits has no inverse"
 
         assert op.getEquivalentSequence() == Sequence(
-            [], [0], [(SetQubits("sq", 1), [0])]
+            [0], [], [(SetQubits("sq", 1), [0], [])]
         )
         assert op.getNumberQubits() == 1
         assert op.getNumberClassicalBits() == 0
@@ -66,7 +67,7 @@ class TestIntialization:
         assert exc.args[0] == "SetDensityMatrix has no inverse"
 
         assert op.getEquivalentSequence() == Sequence(
-            [], [0], [(SetDensityMatrix("sd", 1), [0])]
+            [0], [], [(SetDensityMatrix("sd", 1), [0], [])]
         )
         assert op.getNumberQubits() == 1
         assert op.getNumberClassicalBits() == 0

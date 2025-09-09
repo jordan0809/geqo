@@ -7,7 +7,7 @@ The documentation can be found [here](https://geqo.jos-quantum.de/intro.html).
 1. clone the repository: `git clone https://github.com/JoSQUANTUM/geqo`
 2. create a virtual environment: `python -m venv geqo-env`
 3. enable environment: `source geqo-env/bin/activate`
-4. install geqo with all options: `pip install geqo[sympy,numpy,visualization,dev]`
+4. install geqo with all options: `pip install geqo/[sympy,numpy,visualization,dev]`
 5. optional: run unit tests: `python -m pytest geqo/tests/`
 
 geqo is also available on [PyPI](https://pypi.org/project/geqo/). To install from PyPI just create

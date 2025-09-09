@@ -1,6 +1,5 @@
 import math
 from itertools import combinations
-from typing import List
 
 from geqo.core.basic import BasicGate, InverseBasicGate
 from geqo.core.quantum_circuit import Sequence
@@ -103,7 +102,7 @@ class PermuteQubits(QuantumOperation):
         """
         numberQubits = self.getNumberQubits()
         allQubits = list(range(numberQubits))
-        sequence = Sequence([], allQubits, [(self, allQubits)])
+        sequence = Sequence(allQubits, [], [(self, allQubits, [])])
         return sequence
 
     def getNumberQubits(self):
@@ -223,8 +222,8 @@ class QubitReversal(QuantumOperation):
         allQubits = list(range(numberQubits))
         seq = []
         for i in range(numberQubits // 2):
-            seq.append((SwapQubits(), [i, numberQubits - i - 1]))
-        return Sequence([], allQubits, seq)
+            seq.append((SwapQubits(), [i, numberQubits - i - 1], []))
+        return Sequence(allQubits, [], seq)
 
     def getNumberQubits(self):
         """
@@ -371,7 +370,7 @@ class QFT(QuantumOperation):
         n = self.numberQubits
         seq = []
         for i in range(n):
-            seq.append((h, [i]))
+            seq.append((h, [i], []))
             for j in range(1, n - i):
                 seq.append(
                     (
@@ -379,10 +378,11 @@ class QFT(QuantumOperation):
                             [1], Phase(self.nameSpacePrefix + "Ph" + str(j))
                         ),
                         [i + j, i],
+                        [],
                     )
                 )
-        seq.append((QubitReversal(n), list(range(n))))
-        return Sequence([], list(range(n)), seq)
+        seq.append((QubitReversal(n), list(range(n)), []))
+        return Sequence(list(range(n)), [], seq)
 
     def getNumberQubits(self):
         """
@@ -640,14 +640,14 @@ class PCCM(QuantumOperation):
         gate5 = Rx(self.nameSpacePrefix + "RX(-π/2)")
         gate6 = Ry(self.nameSpacePrefix + "RY(-π/2)")
         seq = [
-            (gate1, [0]),
-            (gate2, [1]),
-            (gate3, [0, 1]),
-            (gate4, [1, 0]),
-            (gate5, [0]),
-            (gate6, [1]),
+            (gate1, [0], []),
+            (gate2, [1], []),
+            (gate3, [0, 1], []),
+            (gate4, [1, 0], []),
+            (gate5, [0], []),
+            (gate6, [1], []),
         ]
-        s = Sequence([], [0, 1], seq)
+        s = Sequence([0, 1], [], seq)
         return s
 
     def getNumberQubits(self):
@@ -862,10 +862,11 @@ def controlledXGateInternal(controls, ancilla, target, toffoli):
             (
                 QuantumControl([1] * (len(controls) - 1), PauliX()),
                 controls[:-1] + ancilla,
+                [],
             )
         )
 
-    seq.append((toffoli, [controls[-1]] + ancilla + target))
+    seq.append((toffoli, [controls[-1]] + ancilla + target, []))
 
     if len(controls) >= 3:
         buffer = controlledXGateInternal(
@@ -878,12 +879,13 @@ def controlledXGateInternal(controls, ancilla, target, toffoli):
             (
                 QuantumControl([1] * (len(controls) - 1), PauliX()),
                 controls[:-1] + ancilla,
+                [],
             )
         )
 
-    seq.append((toffoli, [controls[-1]] + ancilla + target))
+    seq.append((toffoli, [controls[-1]] + ancilla + target, []))
 
-    return Sequence([], controls + target + ancilla, seq)
+    return Sequence(controls + target + ancilla, [], seq)
 
 
 class Pattern:
@@ -1114,7 +1116,14 @@ class Pattern:
                     substitutionsQ,
                     substitutionsC,
                 )
-                if len(currentGateAndTargets) == 2:
+                newGatesAndTargets.append(
+                    (
+                        newGate,
+                        [substitutionsQ[x] for x in currentGateAndTargets[1]],
+                        [substitutionsC[x] for x in currentGateAndTargets[2]],
+                    )
+                )
+                """if len(currentGateAndTargets) == 2:
                     newGatesAndTargets.append(
                         (newGate, [substitutionsQ[x] for x in currentGateAndTargets[1]])
                     )
@@ -1125,10 +1134,10 @@ class Pattern:
                             [substitutionsQ[x] for x in currentGateAndTargets[1]],
                             [substitutionsC[x] for x in currentGateAndTargets[2]],
                         )
-                    )
+                    )"""
             return Sequence(
-                [substitutionsC[x] for x in pattern.bits],
                 [substitutionsQ[x] for x in pattern.qubits],
+                [substitutionsC[x] for x in pattern.bits],
                 newGatesAndTargets,
             )
         elif type(pattern) in [
@@ -1172,7 +1181,7 @@ class Pattern:
 
 
 def findLongestRunSequence(
-    seq: Sequence, start: int, qubits: List, verbose: bool = False
+    seq: Sequence, start: int, qubits: list[int], verbose: bool = False
 ):
     """
     This function scans through the given sequnce and picks out gates whose qubits are:
@@ -1216,7 +1225,12 @@ def findLongestRunSequence(
         currentGate = currentGateAndTargets[0]
         currentBits = []
         currentQubits = []
-        if len(currentGateAndTargets) == 2:
+        if len(currentGateAndTargets) == 3:
+            currentQubits = currentGateAndTargets[1]
+            currentBits = currentGateAndTargets[2]
+        else:
+            raise Exception("not 3 elements as gate and target definition in Sequence")
+        """if len(currentGateAndTargets) == 2:
             currentQubits = currentGateAndTargets[1]
         elif len(currentGateAndTargets) == 3:
             currentQubits = currentGateAndTargets[1]
@@ -1224,7 +1238,7 @@ def findLongestRunSequence(
         else:
             raise Exception(
                 "not 2 or 3 elements as gate and target definition in Sequence"
-            )
+            )"""
 
         if verbose:
             print(
@@ -1283,7 +1297,14 @@ def findLongestRunSequence(
     newGatesAndTargets = []
     for g in gatheredIndices:
         currentGateAndTarget = seq.gatesAndTargets[g]
-        if len(currentGateAndTarget) == 2:
+        newGatesAndTargets.append(
+            (
+                currentGateAndTarget[0],
+                currentGateAndTarget[1],
+                currentGateAndTarget[2],
+            )
+        )
+        """if len(currentGateAndTarget) == 2:
             newGatesAndTargets.append(
                 (currentGateAndTarget[0], currentGateAndTarget[1])
             )
@@ -1294,9 +1315,9 @@ def findLongestRunSequence(
                     currentGateAndTarget[1],
                     currentGateAndTarget[2],
                 )
-            )
+            )"""
 
-    return Sequence(seq.bits, qubits, newGatesAndTargets), gatheredIndices
+    return Sequence(qubits, seq.bits, newGatesAndTargets), gatheredIndices
 
 
 def getAllLongestRuns(sequence: Sequence, numberQubits: int, verbose: bool = False):
@@ -1470,7 +1491,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                     cnot_pair.append([first_diff, k])
 
             for pair in cnot_pair:
-                op.append((CNOT(), pair))
+                op.append((CNOT(), pair, []))
 
             if ibin[first_diff] == 0:
                 ctrl_bits = ibin
@@ -1487,6 +1508,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                         (
                             QuantumControl(ctrl_bits, Rz(f"λ{i}{j}")),
                             targets + [first_diff],
+                            [],
                         )
                     )
                 if np.abs(theta) > 1e-3:
@@ -1494,6 +1516,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                         (
                             QuantumControl(ctrl_bits, Ry(f"θ{i}{j}")),
                             targets + [first_diff],
+                            [],
                         )
                     )
                 if np.abs(phi) > 1e-3:
@@ -1501,6 +1524,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                         (
                             QuantumControl(ctrl_bits, Rz(f"φ{i}{j}")),
                             targets + [first_diff],
+                            [],
                         )
                     )
             else:
@@ -1508,6 +1532,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                     (
                         QuantumControl(ctrl_bits, BasicGate(f"G{i}{j}", 1)),
                         targets + [first_diff],
+                        [],
                     )
                 )
 
@@ -1517,11 +1542,12 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                     (
                         QuantumControl(ctrl_bits, Phase(f"g{i * 2**n + j}")),
                         targets + [first_diff],
+                        [],
                     )
                 )
 
             for pair in reversed(cnot_pair):
-                op.append((CNOT(), pair))
+                op.append((CNOT(), pair, []))
 
             # update u value (apply G and correction Phase after G)
             A = np.identity(2**n, dtype=complex)  # embed G
@@ -1536,7 +1562,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
             u = A @ u
             u = B @ u
 
-    seq = Sequence([], [*range(n)], op)
+    seq = Sequence([*range(n)], [], op)
     if len(seq.gatesAndTargets) == 0:
         print("The input matrix is identity. Now decomposition is required.")
 
@@ -1579,7 +1605,7 @@ def stateInitialize(state):
     return seq, params
 
 
-def decompose_mcx(onoff: List[int], targets: List[int], num_qubits: int):
+def decompose_mcx(onoff: list[int], targets: list[int], num_qubits: int):
     """
     This function decomposes a multi-controlled X (MCX) gate into a sequence of Toffoli gates. The method is based on Barenco et al. (1995) Lemma 7.2
 
@@ -1614,10 +1640,10 @@ def decompose_mcx(onoff: List[int], targets: List[int], num_qubits: int):
     mapping[m : num_qubits - 1] = idle
     mapping[num_qubits - 1] = targets[-1]
 
-    op = [(PauliX(), [t]) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
+    op = [(PauliX(), [t], []) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
 
     op.append(
-        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]])
+        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]], [])
     )
     for i in reversed(range(last_ctrl - 2)):
         op.append(
@@ -1628,9 +1654,11 @@ def decompose_mcx(onoff: List[int], targets: List[int], num_qubits: int):
                     mapping[last_ctrl + 1 + i],
                     mapping[last_ctrl + 2 + i],
                 ],
+                [],
             )
         )
-    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]]))
+    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]], []))
+
     for i in range(last_ctrl - 2):
         op.append(
             (
@@ -1640,10 +1668,11 @@ def decompose_mcx(onoff: List[int], targets: List[int], num_qubits: int):
                     mapping[last_ctrl + 1 + i],
                     mapping[last_ctrl + 2 + i],
                 ],
+                [],
             )
         )
     op.append(
-        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]])
+        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]], [])
     )
 
     for i in reversed(range(last_ctrl - 2)):
@@ -1655,9 +1684,10 @@ def decompose_mcx(onoff: List[int], targets: List[int], num_qubits: int):
                     mapping[last_ctrl + 1 + i],
                     mapping[last_ctrl + 2 + i],
                 ],
+                [],
             )
         )
-    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]]))
+    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]], []))
     for i in range(last_ctrl - 2):
         op.append(
             (
@@ -1667,14 +1697,15 @@ def decompose_mcx(onoff: List[int], targets: List[int], num_qubits: int):
                     mapping[last_ctrl + 1 + i],
                     mapping[last_ctrl + 2 + i],
                 ],
+                [],
             )
         )
 
     op.extend(
-        [(PauliX(), [t]) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
+        [(PauliX(), [t], []) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
     )
 
-    seq = Sequence([], [*range(num_qubits)], op)
+    seq = Sequence([*range(num_qubits)], [], op)
 
     return seq
 
@@ -1705,8 +1736,8 @@ def Shor(N: int, a: int, decompose: bool = False):
     measures = [f"c{i}" for i in range(n)]
 
     # Initialization
-    op = [(PauliX(), [xreg[-1]])]
-    op.extend([(Hadamard(), [powers[i]]) for i in range(n)])
+    op = [(PauliX(), [xreg[-1]], [])]
+    op.extend([(Hadamard(), [powers[i]], []) for i in range(n)])
 
     # modular exponentiation
     for p in range(n):
@@ -1727,12 +1758,17 @@ def Shor(N: int, a: int, decompose: bool = False):
                                 + [xreg[i]]
                                 + ancilla[j + 1 : idx + 1]
                                 + [ancilla[j]],
+                                [],
                             )
                         )
         # swap
         op.extend(
             [
-                (QuantumControl([1], SwapQubits()), [powers[p], xreg[k], ancilla[k]])
+                (
+                    QuantumControl([1], SwapQubits()),
+                    [powers[p], xreg[k], ancilla[k]],
+                    [],
+                )
                 for k in range(n)
             ]
         )
@@ -1754,14 +1790,15 @@ def Shor(N: int, a: int, decompose: bool = False):
                                 + [xreg[i]]
                                 + ancilla[j + 1 : idx + 1]
                                 + [ancilla[j]],
+                                [],
                             )
                         )
 
     # inverse QFT
-    op.append((InverseQFT(n), powers))
+    op.append((InverseQFT(n), powers, []))
 
     op.append((Measure(n), powers, measures))
-    shor_seq = Sequence(measures, powers + xreg + ancilla, op)
+    shor_seq = Sequence(powers + xreg + ancilla, measures, op)
 
     # decompose  MCX, controlled-swap, and QFT gates in Shor
     if decompose:
@@ -1772,11 +1809,11 @@ def Shor(N: int, a: int, decompose: bool = False):
             targets = gnt[1]
             if isinstance(gate, QuantumControl):
                 if isinstance(gate.qop, SwapQubits):  # control swap gates
-                    op.append((Toffoli(), targets))
-                    op.append((Toffoli(), [targets[0], targets[2], targets[1]]))
-                    op.append((Toffoli(), targets))
+                    op.append((Toffoli(), targets, []))
+                    op.append((Toffoli(), [targets[0], targets[2], targets[1]], []))
+                    op.append((Toffoli(), targets, []))
                 elif len(gate.onoff) == 2:  # Toffoli gates
-                    op.append((Toffoli(), targets))
+                    op.append((Toffoli(), targets, []))
                 else:  # more than 2 controls
                     if type(targets[0]) is str:  # turn targets into integer indices
                         int_targets = [shor_seq.qubits.index(t) for t in targets]
@@ -1785,14 +1822,14 @@ def Shor(N: int, a: int, decompose: bool = False):
                     seq = decompose_mcx(gate.onoff, int_targets, len(shor_seq.qubits))
                     seq.name = f"s{count}"
                     count += 1
-                    op.append((seq, shor_seq.qubits))
+                    op.append((seq, shor_seq.qubits, []))
             elif isinstance(gate, InverseQFT):
                 qft_seq = gate.getEquivalentSequence()
-                op.append((qft_seq, targets))
+                op.append((qft_seq, targets, []))
             else:
                 op.append(gnt)
 
-        shor_seq = Sequence(shor_seq.bits, shor_seq.qubits, op)
+        shor_seq = Sequence(shor_seq.qubits, shor_seq.bits, op)
         shor_seq = embedSequences(shor_seq)
 
     return shor_seq

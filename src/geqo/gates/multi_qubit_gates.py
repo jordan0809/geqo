@@ -1,5 +1,5 @@
-from geqo.core.quantum_operation import QuantumOperation
 from geqo.core.quantum_circuit import Sequence
+from geqo.core.quantum_operation import QuantumOperation
 from geqo.gates.fundamental_gates import CNOT, Hadamard, Phase
 
 
@@ -74,23 +74,23 @@ class Toffoli(QuantumOperation):
         phPlusPi = Phase(self.nameSpacePrefix + "S.Pi/4")
         phMinusPi = Phase(self.nameSpacePrefix + "-S.Pi/4")
         seq = [
-            (Hadamard(), [2]),
-            (CNOT(), [1, 2]),
-            (phMinusPi, [2]),
-            (CNOT(), [0, 2]),
-            (phPlusPi, [2]),
-            (CNOT(), [1, 2]),
-            (phMinusPi, [2]),
-            (CNOT(), [0, 2]),
-            (phPlusPi, [1]),
-            (phPlusPi, [2]),
-            (CNOT(), [0, 1]),
-            (Hadamard(), [2]),
-            (phPlusPi, [0]),
-            (phMinusPi, [1]),
-            (CNOT(), [0, 1]),
+            (Hadamard(), [2], []),
+            (CNOT(), [1, 2], []),
+            (phMinusPi, [2], []),
+            (CNOT(), [0, 2], []),
+            (phPlusPi, [2], []),
+            (CNOT(), [1, 2], []),
+            (phMinusPi, [2], []),
+            (CNOT(), [0, 2], []),
+            (phPlusPi, [1], []),
+            (phPlusPi, [2], []),
+            (CNOT(), [0, 1], []),
+            (Hadamard(), [2], []),
+            (phPlusPi, [0], []),
+            (phMinusPi, [1], []),
+            (CNOT(), [0, 1], []),
         ]
-        return Sequence([], [0, 1, 2], seq)
+        return Sequence([0, 1, 2], [], seq)
 
     def getNumberQubits(self):
         """

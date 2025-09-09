@@ -18,22 +18,21 @@ class Sequence(QuantumOperation):
     For convenience, the parameter ```name``` can be used to assign a name to the sequence.
     """
 
-    def __init__(self, bits, qubits, gatesAndTargets, name=None):
+    def __init__(self, qubits, bits, gatesAndTargets, name=None):
         """
         The constructor of this class takes a list of bits and qubits. The operations and targets are
         also provided as a list of tuples or triples.
 
         Parameters
         ----------
-        bits : list(int | String)
-            The list of classical bits. Can be empty. A bit might be described by integers or by character strings.
         qubits : list(int | String)
             The list of quantum bits. Can be empty. A bit might be described by integers or by character strings.
-        gatesAndTargets : list( (QuantumOperation, list(int | String)) | (QuantumOperation, list(int | String), list(int | String )))
-            A tuple consists of the operation in the first component
-            and the classical or quantum target in the second component, depending on the operation. An operation
-            with classical and quantum targets are a triple in the list with the operation as the first component, the
-            classical targets as second component and the quantum targets as third component.
+        bits : list(int | String)
+            The list of classical bits. Can be empty. A bit might be described by integers or by character strings.
+        gatesAndTargets : (QuantumOperation, list(int | String), list(int | String )))
+            A tuple consists of the operation in the first component, the quantum targets in the second component,
+            and  the classical targets in the third component.
+            If there are no quantum or classical targets, the corresponding list should be empty.
         Sequence : geqo.core.quantum_circuit.Sequence
             A ```Sequence```, which contains the provided classical bits and qubits along with the operations and their targets.
 
@@ -67,9 +66,9 @@ class Sequence(QuantumOperation):
         if self.name is None:
             return (
                 "Sequence("
-                + str(self.bits)
-                + ", "
                 + str(self.qubits)
+                + ", "
+                + str(self.bits)
                 + ", "
                 + str(self.gatesAndTargets)
                 + ")"
@@ -77,9 +76,9 @@ class Sequence(QuantumOperation):
         else:
             return (
                 "Sequence("
-                + str(self.bits)
-                + ", "
                 + str(self.qubits)
+                + ", "
+                + str(self.bits)
                 + ", "
                 + str(self.gatesAndTargets)
                 + ', "'
@@ -122,9 +121,10 @@ class Sequence(QuantumOperation):
         newGatesAndTargets = []
         for i in range(len(self.gatesAndTargets))[::-1]:
             g = self.gatesAndTargets[i][0].getInverse()
-            t = self.gatesAndTargets[i][1]
-            newGatesAndTargets.append((g, t))
-        return Sequence(self.bits, self.qubits, newGatesAndTargets)
+            qt = self.gatesAndTargets[i][1]
+            ct = self.gatesAndTargets[i][2]
+            newGatesAndTargets.append((g, qt, ct))
+        return Sequence(self.qubits, self.bits, newGatesAndTargets)
 
     def getEquivalentSequence(self):
         """

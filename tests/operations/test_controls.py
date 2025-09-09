@@ -1,6 +1,6 @@
-from geqo.operations.controls import QuantumControl, ClassicalControl
-from geqo.gates.fundamental_gates import Hadamard
 from geqo.core.quantum_circuit import Sequence
+from geqo.gates.fundamental_gates import Hadamard
+from geqo.operations.controls import ClassicalControl, QuantumControl
 
 
 class TestControls:
@@ -20,7 +20,7 @@ class TestControls:
         assert op.getNumberClassicalBits() == 0
         assert op.isUnitary
         assert op.getEquivalentSequence() == Sequence(
-            [], [1, 2, 0], [(QuantumControl([1, 0], Hadamard()), [1, 2, 0])]
+            [1, 2, 0], [], [(QuantumControl([1, 0], Hadamard()), [1, 2, 0], [])]
         )
 
     def test_classical_control(self):
@@ -39,5 +39,5 @@ class TestControls:
         assert op.getNumberClassicalBits() == 2
         assert op.isUnitary() == qop.isUnitary()
         assert op.getEquivalentSequence() == Sequence(
-            ["0", "1"], [0], [(op, ["0", "1"], [0])]
+            [0], ["0", "1"], [(op, [0], ["0", "1"])]
         )

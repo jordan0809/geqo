@@ -720,8 +720,8 @@ class Rzz(QuantumOperation):
         """
         cx = CNOT()
         rz = Rz(self.name)
-        seq = [(cx, [0, 1]), (rz, [1]), (cx, [0, 1])]
-        return Sequence([], [0, 1], seq)
+        seq = [(cx, [0, 1], []), (rz, [1], []), (cx, [0, 1], [])]
+        return Sequence([0, 1], [], seq)
 
     def getNumberQubits(self):
         """

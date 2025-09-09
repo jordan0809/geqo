@@ -1,6 +1,6 @@
-from geqo.core import Sequence
-from geqo.operations.measurement import Measure
 import itertools
+
+from geqo.core import Sequence
 
 
 def bin2num(c):
@@ -102,16 +102,6 @@ def embedSequences(seq):
         targets = operation[1]
         if isinstance(gate, Sequence):
             # if targets of the subsequence are integers and gate.qubits are strings, convert gate.qubits to integers
-            """qubits = (
-                [*range(len(gate.qubits))]
-                if type(gate.gatesAndTargets[0][1][0]) is int
-                else gate.qubits
-            )
-            bits = (
-                [*range(len(gate.bits))]
-                if type(gate.gatesAndTargets[0][1][0]) is int
-                else gate.bits
-            )"""
             qubits = gate.qubits
             bits = gate.bits
 
@@ -125,7 +115,32 @@ def embedSequences(seq):
             for s_operation in gate.gatesAndTargets:
                 s_gate = s_operation[0]
                 s_targets = s_operation[1]
-                if isinstance(s_gate, Measure):
+                if len(qubits) > 0:
+                    qkey_type = type(qubits[0])
+                    apply_qtargets = [
+                        qubitMapping[x]
+                        if type(x) is qkey_type
+                        else qubitMapping[qubits[x]]
+                        for x in s_targets
+                    ]
+                else:
+                    apply_qtargets = []
+                if len(bits) > 0:
+                    ckey_type = type(bits[0])
+                    apply_ctargets = [
+                        bitMapping[x] if type(x) is ckey_type else bitMapping[bits[x]]
+                        for x in s_operation[2]
+                    ]
+                else:
+                    apply_ctargets = []
+                res.append(
+                    (
+                        s_gate,
+                        apply_qtargets,
+                        apply_ctargets,
+                    )
+                )
+                """if isinstance(s_gate, Measure):
                     qkey_type = type(qubits[0])
                     apply_qtargets = [
                         qubitMapping[x]
@@ -145,13 +160,6 @@ def embedSequences(seq):
                             apply_ctargets,
                         )
                     )
-                    """res.append(
-                        (
-                            s_gate,
-                            [qubitMapping[x] for x in s_targets],
-                            [bitMapping[x] for x in s_operation[2]],
-                        )
-                    )"""
                 else:
                     qkey_type = type(qubits[0])
                     apply_qtargets = [
@@ -160,14 +168,15 @@ def embedSequences(seq):
                         else qubitMapping[qubits[x]]
                         for x in s_targets
                     ]
-                    res.append((s_gate, apply_qtargets))
-                    # res.append((s_gate, [qubitMapping[x] for x in s_targets]))
+                    res.append((s_gate, apply_qtargets))"""
+                # res.append((s_gate, [qubitMapping[x] for x in s_targets]))
         else:
-            if isinstance(gate, Measure):
+            res.append((gate, targets, operation[2]))
+            """if isinstance(gate, Measure):
                 res.append((gate, targets, operation[2]))
             else:
-                res.append((gate, targets))
-    return Sequence(seq.bits, seq.qubits, res, name=seq.name)
+                res.append((gate, targets))"""
+    return Sequence(seq.qubits, seq.bits, res, name=seq.name)
 
 
 def partial_diag(rho, qubits, dropTargets):

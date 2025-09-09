@@ -1945,8 +1945,10 @@ def plot_mpl(
     operations = []
     for op in tem_operations:
         if isinstance(op[0], ClassicalControl):
-            ctrl_bits = op[1][: len(op[0].onoff)]
-            target_qubits = op[1][len(op[0].onoff) :]
+            # ctrl_bits = op[1][: len(op[0].onoff)]
+            # target_qubits = op[1][len(op[0].onoff) :]
+            ctrl_bits = op[2]
+            target_qubits = op[1]
             int_ctargets = [
                 target if type(target) is int else seq.bits.index(target)
                 for target in ctrl_bits
@@ -1956,13 +1958,19 @@ def plot_mpl(
                 for target in target_qubits
             ]
             int_targets = int_ctargets + int_qtargets
+        elif isinstance(op[0], SetBits):
+            int_targets = [
+                target if type(target) is int else seq.bits.index(target)
+                for target in op[2]
+            ]
         else:
             int_targets = [
                 target if type(target) is int else seq.qubits.index(target)
                 for target in op[1]
             ]
 
-        if len(op) == 2:  # non measurement
+        # if len(op) == 2:  # non measurement
+        if not isinstance(op[0], Measure):
             operations.append((op[0], int_targets))
         else:  # measurement
             int_ctargets = [

@@ -1,15 +1,15 @@
 from geqo.core.quantum_circuit import Sequence
+from geqo.gates.fundamental_gates import CNOT
 from geqo.gates.rotation_gates import (
-    Rx,
-    Ry,
-    Rz,
-    Rzz,
     InverseRx,
     InverseRy,
     InverseRz,
     InverseRzz,
+    Rx,
+    Ry,
+    Rz,
+    Rzz,
 )
-from geqo.gates.fundamental_gates import CNOT
 
 
 class TestRotation:
@@ -112,8 +112,8 @@ class TestRotation:
         assert op == Rzz("a")
         assert not op == Ry("a")
         assert op.getInverse() == InverseRzz("a")
-        ops = [(CNOT(), [0, 1]), (Rz("a"), [1]), (CNOT(), [0, 1])]
-        seq = Sequence([], [0, 1], ops)
+        ops = [(CNOT(), [0, 1], []), (Rz("a"), [1], []), (CNOT(), [0, 1], [])]
+        seq = Sequence([0, 1], [], ops)
         assert op.getEquivalentSequence() == seq
         assert op.getNumberQubits() == 2
         assert op.getNumberClassicalBits() == 0
@@ -129,8 +129,8 @@ class TestRotation:
         assert op == InverseRzz("a")
         assert not op == Ry("a")
         assert op.getInverse() == Rzz("a")
-        ops = [(CNOT(), [0, 1]), (InverseRz("a"), [1]), (CNOT(), [0, 1])]
-        seq = Sequence([], [0, 1], ops)
+        ops = [(CNOT(), [0, 1], []), (InverseRz("a"), [1], []), (CNOT(), [0, 1], [])]
+        seq = Sequence([0, 1], [], ops)
         assert op.getEquivalentSequence() == seq
         assert op.getNumberQubits() == 2
         assert op.getNumberClassicalBits() == 0

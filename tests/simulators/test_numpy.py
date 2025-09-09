@@ -69,18 +69,18 @@ gates = [
 op = []
 for g in gates:
     if g.getNumberQubits() == 1:
-        op.extend([(g, [0]), (g.getInverse(), [0])])
+        op.extend([(g, [0], []), (g.getInverse(), [0], [])])
     else:
-        op.extend([(g, [0, 1]), (g.getInverse(), [0, 1])])
+        op.extend([(g, [0, 1], []), (g.getInverse(), [0, 1], [])])
 
-identity_seq = Sequence([], [0, 1], op)
+identity_seq = Sequence([0, 1], [], op)
 
 
 class TestNumpySimulator:
     def test_statevector_simulator(self):
         nqubits = 3
         ncbits = 2
-        sim = simulatorStatevectorNumpy(ncbits, nqubits)
+        sim = simulatorStatevectorNumpy(nqubits, ncbits)
         state = np.zeros(shape=(2**nqubits, 1), dtype=np.complex128)
         state[0, 0] = 1.0 + 0 * 1j
 
@@ -93,7 +93,7 @@ class TestNumpySimulator:
         assert sim.classicalBits == [0] * ncbits
         assert (
             str(sim)
-            == "simulatorStatevectorNumpy(" + str(ncbits) + ", " + str(nqubits) + ")"
+            == "simulatorStatevectorNumpy(" + str(nqubits) + ", " + str(ncbits) + ")"
         )
 
         with pytest.raises(
@@ -127,7 +127,7 @@ class TestNumpySimulator:
         assert str(Hadamard()) in exc.args[1]
 
     def test_statevector_simulator_unitary(self):
-        sim = simulatorStatevectorNumpy(0, 2)
+        sim = simulatorStatevectorNumpy(2, 0)
         sim.setValue("a", 0.1)
         matrix = np.array([[1, 0], [0, 1]])
         sim.setValue("b", matrix)
@@ -159,7 +159,7 @@ class TestNumpySimulator:
         # test SetBits
         setbit = SetBits("sb", 1)
         with pytest.raises(Exception) as exc_info:
-            sim.apply(setbit, [0], [0])
+            sim.apply(setbit, [], [0])
         exc = exc_info.value
         assert exc.args[0] == "no more operation allowed after measurement"
 
@@ -168,16 +168,16 @@ class TestNumpySimulator:
             ValueError,
             match=f'Bit values "{setbit.name}" not found',
         ):
-            sim.apply(setbit, [0], [0])
+            sim.apply(setbit, [], [0])
 
         sim.setValue("sb", [1])
         with pytest.raises(
             ValueError,
             match="wrong number of bits in definition for SetBits",
         ):
-            sim.apply(setbit, [0], [0, 1])
+            sim.apply(setbit, [], [0, 1])
 
-        sim.apply(setbit, [0], [0])
+        sim.apply(setbit, [], [0])
         assert sim.classicalBits == [1, 0]
 
         # test SetQubits
@@ -204,7 +204,7 @@ class TestNumpySimulator:
         # test ClassicalControl
         setden = ClassicalControl([1], Hadamard())
         with pytest.raises(Exception) as exc_info:
-            sim.apply(setden, [0, 1])
+            sim.apply(setden, [1], [0])
         exc = exc_info.value
         assert (
             exc.args[0] == "cannot perform ClassicalControl in statevector simulations"

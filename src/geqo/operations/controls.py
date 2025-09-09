@@ -112,7 +112,13 @@ class QuantumControl(QuantumOperation):
 
         newSequence = []
         for s in originalSequence.gatesAndTargets:
-            if len(s) == 2:
+            gate = s[0]
+            qtargets = s[1]
+            ctargets = s[2]
+            newGate = QuantumControl(self.onoff, gate)
+            newSequence.append((newGate, newQubits + qtargets, ctargets))
+
+            """if len(s) == 2:
                 gate = s[0]
                 targets = s[1]
                 newGate = QuantumControl(self.onoff, gate)
@@ -122,10 +128,10 @@ class QuantumControl(QuantumOperation):
                 ctargets = s[1]
                 s[2]
                 newGate = QuantumControl(self.onoff, gate)
-                newSequence.append((newGate, ctargets, newQubits + targets))
+                newSequence.append((newGate, ctargets, newQubits + targets))"""
         return Sequence(
-            originalSequenceClassicalBits,
             newQubits + originalSequenceQuantumBits,
+            originalSequenceClassicalBits,
             newSequence,
         )
 
@@ -277,7 +283,13 @@ class ClassicalControl(QuantumOperation):
 
         newSequence = []
         for s in originalSequence.gatesAndTargets:
-            if len(s) == 2:
+            gate = s[0]
+            qtargets = s[1]
+            ctargets = s[2]
+            newGate = ClassicalControl(self.onoff, gate)
+            newSequence.append((newGate, qtargets, newBits + ctargets))
+
+            """if len(s) == 2:
                 gate = s[0]
                 targets = s[1]
                 newGate = ClassicalControl(self.onoff, gate)
@@ -287,10 +299,10 @@ class ClassicalControl(QuantumOperation):
                 ctargets = s[1]
                 s[2]
                 newGate = ClassicalControl(self.onoff, gate)
-                newSequence.append((newGate, newBits + ctargets, targets))
+                newSequence.append((newGate, newBits + ctargets, targets))"""
         return Sequence(
-            newBits + originalSequenceClassicalBits,
             originalSequenceQuantumBits,
+            newBits + originalSequenceClassicalBits,
             newSequence,
         )
 

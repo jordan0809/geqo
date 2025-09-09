@@ -79,7 +79,7 @@ class SetBits(QuantumOperation):
             An object of the class```Sequence``` is returned with this operation and the appropriate classical targets in it.
         """
         allBits = list(range(self.numberBits))
-        return Sequence(allBits, [], [(self, allBits)])
+        return Sequence([], allBits, [(self, [], allBits)])
 
     def getNumberQubits(self):
         """
@@ -197,7 +197,7 @@ class SetQubits(QuantumOperation):
             An object of the class```Sequence``` is returned with this operation and the appropriate quantum targets in it.
         """
         allQubits = list(range(self.numberQubits))
-        return Sequence([], allQubits, [(self, allQubits)])
+        return Sequence(allQubits, [], [(self, allQubits, [])])
 
     def getNumberQubits(self):
         """
@@ -316,7 +316,7 @@ class SetDensityMatrix(QuantumOperation):
             An object of the class```Sequence``` is returned with this operation and the appropriate quantum targets in it.
         """
         allQubits = list(range(self.numberQubits))
-        return Sequence([], allQubits, [(self, allQubits)])
+        return Sequence(allQubits, [], [(self, allQubits, [])])
 
     def getNumberQubits(self):
         """

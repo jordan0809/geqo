@@ -99,7 +99,7 @@ def pack_gates(operations: list):
 
     Args:
         operations (list): A list of operations, where each operation is a tuple
-            of the form (gate, target_qubits). `target_qubits` is a list of qubit indices
+            of the form (gate, target_qubits, target_bits). `target_qubits` is a list of qubit indices
             the gate acts on.
 
     Returns:
