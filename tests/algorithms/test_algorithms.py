@@ -194,6 +194,7 @@ class TestAlgorithms:
         state = np.array([1, 2 + 0.5j, 3 - 1.2j, 4])
         state = state / np.sqrt(np.sum(state * np.conj(state)))
         seq, params = stateInitialize(state)
+
         sim = simulatorStatevectorNumpy(2, 0)
         sim.values = params
         sim.apply(seq, [0, 1])

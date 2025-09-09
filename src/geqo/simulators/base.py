@@ -9,7 +9,9 @@ from geqo.algorithms.algorithms import (
     InverseQFT,
     PermuteQubits,
     QubitReversal,
+    unitaryDecomposer,
 )
+from geqo.core.basic import BasicGate, InverseBasicGate
 from geqo.core.quantum_circuit import Sequence
 from geqo.core.quantum_operation import QuantumOperation
 from geqo.initialization.state import SetQubits
@@ -294,162 +296,14 @@ class BaseQASM(Simulator):
                         0, f"x q[{ctrl_qubits[i]}];"
                     )  # reverse order for restoration
 
-            if isinstance(gate.qop, gates.PauliX) and len(ctrl_qubits) == 1:
-                mid_line = f"cx q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-            elif isinstance(gate.qop, gates.PauliY) and len(ctrl_qubits) == 1:
-                mid_line = f"cy q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-            elif isinstance(gate.qop, gates.PauliZ) and len(ctrl_qubits) == 1:
-                mid_line = f"cz q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-            elif isinstance(gate.qop, gates.Hadamard) and len(ctrl_qubits) == 1:
-                mid_line = f"ch q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-            elif isinstance(gate.qop, gates.SGate) and len(ctrl_qubits) == 1:
-                mid_line = f"cs q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-            elif isinstance(gate.qop, gates.InverseSGate) and len(ctrl_qubits) == 1:
-                # Controlled-Sdg (decomposition)
-                mid_lines = [
-                    f"p(-pi/4) q[{target_qubits[0]}];",
-                    f"p(-pi/4) q[{ctrl_qubits[0]}];",
-                    f"cx q[{ctrl_qubits[0]}], q[{target_qubits[0]}];",
-                    f"p(pi/4) q[{target_qubits[0]}];",
-                    f"cx q[{ctrl_qubits[0]}], q[{target_qubits[0]}];",
-                ]
-                mid_line = "\n".join(mid_lines)
-            elif isinstance(gate.qop, gates.CNOT) and len(ctrl_qubits) == 1:
-                mid_line = f"ccx q[{ctrl_qubits[0]}], q[{target_qubits[0]}], q[{target_qubits[1]}];"
-            elif isinstance(gate.qop, gates.Phase) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"cp({angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.InversePhase) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"cp(-{angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.",
-                        gate.qop.name,
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.Rx) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"crx({angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.Ry) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"cry({angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.Rz) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"crz({angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.InverseRx) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"crx(-{angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.InverseRy) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"cry(-{angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.InverseRz) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = (
-                        f"crz(-{angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}];"
-                    )
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.Rzz) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = f"crzz({angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}], q[{target_qubits[1]}];"
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            elif isinstance(gate.qop, gates.InverseRzz) and len(ctrl_qubits) == 1:
-                try:
-                    angle = self.values[gate.qop.name]
-                    mid_line = f"crzz(-{angle}) q[{ctrl_qubits[0]}], q[{target_qubits[0]}], q[{target_qubits[1]}];"
-                except KeyError:
-                    logger.error(
-                        "Cannot fetch phase angle %s from the backend.", gate.qop.name
-                    )
-                    raise ValueError(
-                        f"Cannot fetch phase angle {gate.qop.name} from the backend."
-                    )
-            else:  # Multi-controlled gates
-                if isinstance(gate.qop, gates.PauliX) and len(ctrl_qubits) == 2:
-                    mid_line = f"ccx q[{ctrl_qubits[0]}], q[{ctrl_qubits[1]}], q[{target_qubits[0]}];"
-                else:
-                    raise NotImplementedError(
-                        f"Multi-controlled gate not supported: {gate.qop}"
-                    )
+            s = self.gate_to_qasm(gate.qop, target_qubits)
+            gate_str = s.split()[0]
+            mid_line = f"ctrl({len(onoff)}) @ {gate_str} "
+            for i in range(len(onoff)):
+                mid_line += f"q[{ctrl_qubits[i]}], "
+            for i in range(len(target_qubits) - 1):
+                mid_line += f"q[{target_qubits[i]}], "
+            mid_line += f"q[{target_qubits[-1]}];"
 
             return "\n".join(pre_lines + [mid_line] + post_lines)
 
@@ -487,44 +341,6 @@ class BaseQASM(Simulator):
         else:
             return self.gate_to_qasm(gate, targets)
 
-    def define_gate(self, gate_qasm: str) -> str:
-        """
-        Create the QASM3 code to define seversal gates. These are not standard in QASM3 and must
-        be defined before using it.
-
-        Params
-        ------
-            gate : geqo.core.quantum_operation.QuantumOperation
-                A quantum operation. It is checked if it is necessary to generate a definition for it.
-
-        Returns
-        -------
-            string: String
-                The character string corresponding to the gate.
-        """
-        if gate_qasm == "rzz":
-            string = """gate rzz(theta) a, b {
-            cx a, b;
-            rz(theta) b;
-            cx a, b;
-        }"""
-        elif gate_qasm == "cs":
-            string = """gate cs a, b {
-            p(pi/4) a;
-            p(pi/4) b;
-            cx a, b;
-            p(-pi/4) b;
-            cx a, b;
-        }"""
-        elif gate_qasm == "crzz":
-            string = """gate crzz(theta) a, b, c {
-            ccx a, b, c;
-            crz(theta) a, c;
-            ccx a, b, c;
-        }"""
-
-        return string
-
     def _qasm_lines_init(self, sequence: Sequence) -> list[str]:
         """
         Create the first few lines that are necessary for valid QASM3 code. The input is a ```Sequence``` and it is processed to
@@ -544,30 +360,29 @@ class BaseQASM(Simulator):
 
         lines = ["OPENQASM 3.0; \ninclude 'stdgates.inc';"]
 
+        define_rzz = """gate rzz(theta) a, b {
+                cx a, b;
+                rz(theta) b;
+                cx a, b;
+            }"""
+
         Gates = [op[0] for op in seq.gatesAndTargets]
-        defined = {"rzz": False, "cs": False, "crzz": False}
         for gate in Gates:
-            if isinstance(gate, gates.Rzz) and not defined["rzz"]:
-                lines.append(self.define_gate("rzz"))
-                defined["rzz"] = True
+            if isinstance(gate, gates.Rzz):
+                lines.append(define_rzz)
+                break
             if isinstance(gate, QuantumControl):
-                if isinstance(gate.qop, gates.SGate) and not defined["cs"]:
-                    lines.append(self.define_gate("cs"))
-                    defined["cs"] = True
-                if isinstance(gate.qop, gates.Rzz) and not defined["crzz"]:
-                    lines.append(self.define_gate("crzz"))
-                    defined["crzz"] = True
+                if isinstance(gate.qop, gates.Rzz):
+                    lines.append(define_rzz)
+                    break
             if isinstance(gate, ClassicalControl):
-                if isinstance(gate.qop, gates.Rzz) and not defined["rzz"]:
-                    lines.append(self.define_gate("rzz"))
-                    defined["rzz"] = True
+                if isinstance(gate.qop, gates.Rzz):
+                    lines.append(define_rzz)
+                    break
                 if isinstance(gate.qop, QuantumControl):
-                    if isinstance(gate.qop.qop, gates.SGate) and not defined["cs"]:
-                        lines.append(self.define_gate("cs"))
-                        defined["cs"] = True
-                    if isinstance(gate.qop.qop, gates.Rzz) and not defined["crzz"]:
-                        lines.append(self.define_gate("crzz"))
-                        defined["crzz"] = True
+                    if isinstance(gate.qop.qop, gates.Rzz):
+                        lines.append(define_rzz)
+                        break
         return lines
 
     def _qasm_lines_body(self, sequence: Sequence, lines: list[str]) -> str:
@@ -582,9 +397,124 @@ class BaseQASM(Simulator):
 
         for item in seq.gatesAndTargets:
             gate, qubits, bits = item
-            translate_gate_lines = self.translate_gate(gate, qubits, bits)
-            if isinstance(translate_gate_lines, str):
-                lines.append(translate_gate_lines)
+            qubits = [seq.qubits.index(q) if type(q) is not int else q for q in qubits]
+            bits = [seq.bits.index(b) if type(b) is not int else b for b in bits]
+
+            if isinstance(gate, (BasicGate, InverseBasicGate)):
+                try:
+                    u = self.values[gate.name]
+                except KeyError:
+                    logger.exception(
+                        "Cannot fetch (Inverse)BasicGate matrix %s from the backend.",
+                        gate.name,
+                    )
+                    raise ValueError(
+                        f"Cannot fetch (Inverse)BasicGate matrix {gate.name} from the backend."
+                    )
+
+                decom, params = unitaryDecomposer(u, decompose_givens=True)
+                self.values.update(params)
+                qmapping = {decom.qubits[i]: qubits[i] for i in range(len(qubits))}
+
+                for gnt in decom.gatesAndTargets:
+                    qtargets = [qmapping[t] for t in gnt[1]]
+                    translate_gate_lines = self.translate_gate(gnt[0], qtargets, bits)
+                    if isinstance(translate_gate_lines, str):
+                        lines.append(translate_gate_lines)
+
+            elif isinstance(gate, (QuantumControl, ClassicalControl)) and isinstance(
+                gate.qop, (BasicGate, InverseBasicGate)
+            ):
+                try:
+                    u = self.values[gate.qop.name]
+                except KeyError:
+                    logger.exception(
+                        "Cannot fetch (Inverse)BasicGate matrix %s from the backend.",
+                        gate.qop.name,
+                    )
+                    raise ValueError(
+                        f"Cannot fetch (Inverse)BasicGate matrix {gate.qop.name} from the backend."
+                    )
+                decom, params = unitaryDecomposer(u, decompose_givens=True)
+                self.values.update(params)
+                targets = (
+                    qubits[len(gate.onoff) :]
+                    if isinstance(gate, QuantumControl)
+                    else qubits
+                )
+                qmapping = {decom.qubits[i]: targets[i] for i in range(len(targets))}
+
+                for gnt in decom.gatesAndTargets:
+                    qtargets = (
+                        qubits[: len(gate.onoff)] + [qmapping[t] for t in gnt[1]]
+                        if isinstance(gate, QuantumControl)
+                        else [qmapping[t] for t in gnt[1]]
+                    )
+                    applied_gate = (
+                        QuantumControl(gate.onoff, gnt[0])
+                        if isinstance(gate, QuantumControl)
+                        else ClassicalControl(gate.onoff, gnt[0])
+                    )
+
+                    if (
+                        isinstance(applied_gate, QuantumControl)
+                        and isinstance(applied_gate.qop, QuantumControl)
+                    ):  # if the applied gate is QuantumControl within QuantumControl then merge them into one QuantumControl
+                        applied_gate = QuantumControl(
+                            gate.onoff + applied_gate.qop.onoff, applied_gate.qop.qop
+                        )
+
+                    translate_gate_lines = self.translate_gate(
+                        applied_gate, qtargets, bits
+                    )
+                    if isinstance(translate_gate_lines, str):
+                        lines.append(translate_gate_lines)
+
+            elif (
+                isinstance(gate, ClassicalControl)
+                and isinstance(gate.qop, QuantumControl)
+                and isinstance(gate.qop.qop, (BasicGate, InverseBasicGate))
+            ):
+                try:
+                    u = self.values[gate.qop.qop.name]
+                except KeyError:
+                    logger.exception(
+                        "Cannot fetch (Inverse)BasicGate matrix %s from the backend.",
+                        gate.qop.qop.name,
+                    )
+                    raise ValueError(
+                        f"Cannot fetch (Inverse)BasicGate matrix {gate.qop.qop.name} from the backend."
+                    )
+                decom, params = unitaryDecomposer(u, decompose_givens=True)
+                self.values.update(params)
+                targets = qubits[len(gate.qop.onoff) :]
+                qmapping = {decom.qubits[i]: targets[i] for i in range(len(targets))}
+
+                for gnt in decom.gatesAndTargets:
+                    qtargets = qubits[: len(gate.qop.onoff)] + [
+                        qmapping[t] for t in gnt[1]
+                    ]
+
+                    if isinstance(gnt[0], QuantumControl):
+                        quantum_gate = QuantumControl(
+                            gate.qop.onoff + gnt[0].onoff, gnt[0].qop
+                        )
+                    else:
+                        quantum_gate = QuantumControl(gate.qop.onoff, gnt[0])
+
+                    applied_gate = ClassicalControl(gate.onoff, quantum_gate)
+
+                    translate_gate_lines = self.translate_gate(
+                        applied_gate, qtargets, bits
+                    )
+                    if isinstance(translate_gate_lines, str):
+                        lines.append(translate_gate_lines)
+
+            else:
+                translate_gate_lines = self.translate_gate(gate, qubits, bits)
+
+                if isinstance(translate_gate_lines, str):
+                    lines.append(translate_gate_lines)
 
             """if len(item) == 2:
                 gate, targets = item
