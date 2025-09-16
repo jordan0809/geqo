@@ -6,10 +6,13 @@ from geqo.algorithms.algorithms import (
     Pattern,
     PermuteQubits,
     QubitReversal,
+    Shor,
     controlledXGate,
+    decompose_mcx,
     findLongestRunSequence,
     getAllLongestRuns,
     getAllRuns,
+    stateInitialize,
     unitaryDecomposer,
 )
 
@@ -31,6 +34,9 @@ __all__ = [
     "getAllLongestRuns",
     "getAllRuns",
     "unitaryDecomposer",
+    "stateInitialize",
+    "decompose_mcx",
+    "Shor",
 ]
 
 if _OPTIONAL_NUMPY_SIMULATORS_ENABLED and _OPTIONAL_SYMPY_SIMULATORS_ENABLED:

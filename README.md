@@ -22,7 +22,7 @@ and activate an environment with steps 2 and 3 and then install geqo with
 ```
 from geqo.gates import Hadamard, CNOT
 from geqo.core import Sequence
-seq=Sequence([],["q1","q2"],[ (Hadamard(),["q1"]), (CNOT(), ["q1","q2"]) ])
+seq=Sequence(["q1","q2"],[], [ (Hadamard(),["q1"], []), (CNOT(), ["q1","q2"], []) ])
 
 from geqo.simulators import simulatorUnitarySymPy
 sim=simulatorUnitarySymPy(2)

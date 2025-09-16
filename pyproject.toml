@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geqo"
-version = "0.1.0"
+version = "0.1.1"
 description = "A quantum computing framework"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -33,6 +33,7 @@ visualization = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
     "mplcursors>=0.6",
+    "ipympl>=0.9.7",
 ]
 sympy = [
     "sympy>=1.14.0",
@@ -53,6 +54,7 @@ visualization = [
     "ipykernel>=6.29.5",
     "matplotlib>=3.10.1",
     "mplcursors>=0.6",
+    "ipympl>=0.9.7",
 ]
 sympy = [
     "sympy>=1.14.0",
