@@ -41,6 +41,9 @@ sympy = [
 numpy = [
     "numpy>=1.20",
 ]
+cupy = [
+    "cupy-cuda12x>=13.0.0,<14.0.0",
+]
 
 [dependency-groups]
 dev = [
@@ -61,6 +64,9 @@ sympy = [
 ]
 numpy = [
     "numpy>=1.20",
+]
+cupy = [
+    "cupy-cuda12x>=13.0.0,<14.0.0", 
 ]
 
 [project.urls]
