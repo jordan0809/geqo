@@ -1502,11 +1502,11 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
             targets = [*range(n)]
             targets.pop(first_diff)
             # apply U
-            if decompose_givens:
+            if n == 1:
                 if np.abs(lam) > 1e-3:
                     op.append(
                         (
-                            QuantumControl(ctrl_bits, Rz(f"λ{i}{j}")),
+                            Rz(f"λ{i}{j}"),
                             targets + [first_diff],
                             [],
                         )
@@ -1514,7 +1514,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 if np.abs(theta) > 1e-3:
                     op.append(
                         (
-                            QuantumControl(ctrl_bits, Ry(f"θ{i}{j}")),
+                            Ry(f"θ{i}{j}"),
                             targets + [first_diff],
                             [],
                         )
@@ -1522,29 +1522,63 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 if np.abs(phi) > 1e-3:
                     op.append(
                         (
-                            QuantumControl(ctrl_bits, Rz(f"φ{i}{j}")),
+                            Rz(f"φ{i}{j}"),
                             targets + [first_diff],
                             [],
                         )
                     )
-            else:
-                op.append(
-                    (
-                        QuantumControl(ctrl_bits, BasicGate(f"G{i}{j}", 1)),
-                        targets + [first_diff],
-                        [],
+                if np.abs(correction_phase_after_G) > 1e-3:
+                    op.append(
+                        (
+                            Phase(f"g{i * 2**n + j}"),
+                            targets + [first_diff],
+                            [],
+                        )
                     )
-                )
+            else:  # n >1
+                if decompose_givens:
+                    if np.abs(lam) > 1e-3:
+                        op.append(
+                            (
+                                QuantumControl(ctrl_bits, Rz(f"λ{i}{j}")),
+                                targets + [first_diff],
+                                [],
+                            )
+                        )
+                    if np.abs(theta) > 1e-3:
+                        op.append(
+                            (
+                                QuantumControl(ctrl_bits, Ry(f"θ{i}{j}")),
+                                targets + [first_diff],
+                                [],
+                            )
+                        )
+                    if np.abs(phi) > 1e-3:
+                        op.append(
+                            (
+                                QuantumControl(ctrl_bits, Rz(f"φ{i}{j}")),
+                                targets + [first_diff],
+                                [],
+                            )
+                        )
+                else:
+                    op.append(
+                        (
+                            QuantumControl(ctrl_bits, BasicGate(f"G{i}{j}", 1)),
+                            targets + [first_diff],
+                            [],
+                        )
+                    )
 
-            # phase correction after G
-            if np.abs(correction_phase_after_G) > 1e-3:
-                op.append(
-                    (
-                        QuantumControl(ctrl_bits, Phase(f"g{i * 2**n + j}")),
-                        targets + [first_diff],
-                        [],
+                # phase correction after G
+                if np.abs(correction_phase_after_G) > 1e-3:
+                    op.append(
+                        (
+                            QuantumControl(ctrl_bits, Phase(f"g{i * 2**n + j}")),
+                            targets + [first_diff],
+                            [],
+                        )
                     )
-                )
 
             for pair in reversed(cnot_pair):
                 op.append((CNOT(), pair, []))

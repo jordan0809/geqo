@@ -37,7 +37,7 @@ Ruff Format:
   interruptible: true
   image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
   before_script:
-    - uv sync --all-extras
+    - uv sync --extra dev --extra numpy --extra sympy --extra visualization
   rules:
     - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
     - if: $CI_COMMIT_TAG
@@ -47,7 +47,7 @@ Ruff Format:
 Pytest:
   extends: .base_pytest
   script:
-    - uv run --all-extras python -m pytest tests/ --cov=src/ --cov-report=xml:coverage.xml --junit-xml=junit.xml
+    - uv run --extra dev --extra numpy --extra sympy --extra visualization python -m pytest tests/ --cov=src/ --cov-report=xml:coverage.xml --junit-xml=junit.xml
   artifacts:
     when: always
     paths:
@@ -64,7 +64,7 @@ pages:
   stage: deploy
   image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
   before_script:
-    - uv sync --all-extras
+    - uv sync --extra dev --extra numpy --extra sympy --extra visualization
   script:
     - uv run jupyter-book build docs-site/
     - mv docs-site/_build/html public
