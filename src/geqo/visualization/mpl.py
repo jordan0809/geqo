@@ -31,6 +31,7 @@ def draw_single_qubit_gate(
     backend: Simulator | None = None,
     greek_symbol: bool = True,
     measure_bit: list | None = None,
+    name_map: dict = {},
     **kwargs,
 ):
     """Plot a single-qubit gate onto a Matplotlib axis as part of a quantum circuit diagram.
@@ -68,8 +69,10 @@ def draw_single_qubit_gate(
                 zorder=2,
             )
         )
-        valid_name(gate.name)
-        name = f"${gate.name}$"
+        name = gate.name
+        if not valid_name(name) and not name == r"\mathbb{R}\text{vrs}":
+            name = name_map[name]
+        name = name if name.startswith("$") else f"${name}$"
         fontsize = 12
 
     elif isinstance(gate, QuantumOperation):  # geqo gates
@@ -88,11 +91,33 @@ def draw_single_qubit_gate(
         elif isinstance(gate, DropQubits):
             plot_dropbits(ax, qubits, num_qubits, i, **kwargs)
         elif isinstance(gate, SetBits):
-            plot_setbits(seq, gate, ax, qubits, num_qubits, i, backend, **kwargs)
+            plot_setbits(
+                seq,
+                gate,
+                ax,
+                qubits,
+                num_qubits,
+                i,
+                backend,
+                name_map=name_map,
+                **kwargs,
+            )
         elif isinstance(gate, SetQubits):
-            plot_setqubits(seq, gate, ax, qubits, num_qubits, i, backend, **kwargs)
+            plot_setqubits(
+                seq,
+                gate,
+                ax,
+                qubits,
+                num_qubits,
+                i,
+                backend,
+                name_map=name_map,
+                **kwargs,
+            )
         elif isinstance(gate, SetDensityMatrix):
-            plot_setdensitymatrix(seq, gate.name, ax, qubits, num_qubits, i, **kwargs)
+            plot_setdensitymatrix(
+                seq, gate.name, ax, qubits, num_qubits, i, name_map=name_map, **kwargs
+            )
         else:  # Unitary gates
             ax.add_patch(
                 FancyBboxPatch(
@@ -673,6 +698,7 @@ def plot_setbits(
     num_qubits: int,
     i: int,
     backend: Simulator | None = None,
+    name_map: dict = {},
     **kwargs,
 ):
     """Plot a SetBits operation onto a Matplotlib axis.
@@ -732,6 +758,7 @@ def plot_setbits(
                     num_qubits,
                     i,
                     backend=None,
+                    name_map=name_map,
                     basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                     basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                     linethrough_ls=kwargs.get("linethrough_ls", "solid"),
@@ -752,6 +779,7 @@ def plot_setbits(
                     i,
                     backend=None,
                     greek_symbol=True,
+                    name_map=name_map,
                     basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                     basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                     text_color=kwargs.get("text_color", "black"),
@@ -768,6 +796,7 @@ def plot_setbits(
                 num_qubits,
                 i,
                 backend=None,
+                name_map=name_map,
                 basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                 basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                 linethrough_ls=kwargs.get("linethrough_ls", "solid"),
@@ -785,6 +814,7 @@ def plot_setbits(
                 i,
                 backend=None,
                 greek_symbol=True,
+                name_map=name_map,
                 basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                 basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                 text_color=kwargs.get("text_color", "black"),
@@ -800,6 +830,7 @@ def plot_setqubits(
     num_qubits: int,
     i: int,
     backend: Simulator = None,
+    name_map: dict = {},
     **kwargs,
 ):
     """
@@ -861,6 +892,7 @@ def plot_setqubits(
                     num_qubits,
                     i,
                     backend=None,
+                    name_map=name_map,
                     basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                     basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                     linethrough_ls=kwargs.get("linethrough_ls", "solid"),
@@ -881,6 +913,7 @@ def plot_setqubits(
                     i,
                     backend=None,
                     greek_symbol=True,
+                    name_map=name_map,
                     basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                     basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                     text_color=kwargs.get("text_color", "black"),
@@ -897,6 +930,7 @@ def plot_setqubits(
                 num_qubits,
                 i,
                 backend=None,
+                name_map=name_map,
                 basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                 basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                 linethrough_ls=kwargs.get("linethrough_ls", "solid"),
@@ -914,6 +948,7 @@ def plot_setqubits(
                 i,
                 backend=None,
                 greek_symbol=True,
+                name_map=name_map,
                 basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
                 basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
                 text_color=kwargs.get("text_color", "black"),
@@ -928,6 +963,7 @@ def plot_setdensitymatrix(
     qubits: list,
     num_qubits: int,
     i: int,
+    name_map: dict = {},
     **kwargs,
 ):
     """Plot a SetDensityMatrix operation onto a Matplotlib axis.
@@ -945,8 +981,10 @@ def plot_setdensitymatrix(
         matplotlib.axes: The updated Matplotlib axis with the SetDensityMatrix operation rendered.
 
     """
-    valid_name(name)
-    name = r"\rho[{}]".format(name)
+    if not valid_name(name):
+        name = name_map[name]
+    # name = r"\rho[{}]".format(name)
+    name = f"$\\rho[{name}]$"
     setdensitymatrix = BasicGate(name, len(qubits))
     if len(qubits) > 1:
         draw_multi_qubit_gate(
@@ -957,6 +995,7 @@ def plot_setdensitymatrix(
             num_qubits,
             i,
             backend=None,
+            name_map=name_map,
             basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
             basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
             linethrough_ls=kwargs.get("linethrough_ls", "solid"),
@@ -974,6 +1013,7 @@ def plot_setdensitymatrix(
             i,
             backend=None,
             greek_symbol=True,
+            name_map=name_map,
             basicgate_facecolor=kwargs.get("setbits_facecolor", "white"),
             basicgate_edgecolor=kwargs.get("setbits_edgecolor", "black"),
             text_color=kwargs.get("text_color", "black"),
@@ -1029,6 +1069,7 @@ def draw_multi_ctrl_gate(
     i: int,
     backend: Simulator = None,
     greek_symbol: bool = True,
+    name_map: dict = {},
     **kwargs,
 ):
     """Plot a multi-controlled quantum gate on a Matplotlib axis.
@@ -1234,8 +1275,9 @@ def draw_multi_ctrl_gate(
         num_targets = gate.qop.getNumberQubits()
         facecolor = kwargs.get("basicgate_facecolor", "white")
         edgecolor = kwargs.get("basicgate_edgecolor", "black")
-        valid_name(name)
-        name = f"${name}$"
+        if not valid_name(name) and not name == r"\mathbb{R}\text{vrs}":
+            name = name_map[name]
+        name = name if name.startswith("$") else f"${name}$"
     else:
         if isinstance(gate.qop, Gates.PauliX):  # multi-controlled X gate
             name = None
@@ -1634,6 +1676,7 @@ def draw_multi_qubit_gate(
     backend: Simulator = None,
     greek_symbol: bool = True,
     measure_bit: list | None = None,
+    name_map: dict = {},
     **kwargs,
 ):
     """Plot a multi-qubit quantum gate on a Matplotlib axis.
@@ -1670,8 +1713,10 @@ def draw_multi_qubit_gate(
                 zorder=2,
             )
         )
-        valid_name(gate.name)
-        name = "${}$".format(gate.name)
+        name = gate.name
+        if not valid_name(name) and not name == r"\mathbb{R}\text{vrs}":
+            name = name_map[name]
+        name = name if name.startswith("$") else "${}$".format(name)
         ax.text(
             i + 1 + 0.3,
             num_qubits - 1 - (max(qubits) + min(qubits)) / 2,
@@ -1732,6 +1777,7 @@ def draw_multi_qubit_gate(
                     num_qubits=num_qubits,
                     i=i,
                     backend=backend,
+                    name_map=name_map,
                     **kwargs,
                 )
             if isinstance(gate, SetQubits):
@@ -1743,6 +1789,7 @@ def draw_multi_qubit_gate(
                     num_qubits=num_qubits,
                     i=i,
                     backend=backend,
+                    name_map=name_map,
                     **kwargs,
                 )
             if isinstance(gate, SetDensityMatrix):
@@ -1753,6 +1800,7 @@ def draw_multi_qubit_gate(
                     qubits=qubits,
                     num_qubits=num_qubits,
                     i=i,
+                    name_map=name_map,
                     **kwargs,
                 )
 
@@ -1979,6 +2027,97 @@ def plot_mpl(
             ]
             operations.append((op[0], int_targets, int_ctargets))
 
+    # store all valid BasicGate names
+    valid_names = []
+
+    for op in seq.gatesAndTargets:
+        if (
+            isinstance(
+                op[0],
+                (
+                    BasicGate,
+                    InverseBasicGate,
+                    Sequence,
+                    SetBits,
+                    SetQubits,
+                    SetDensityMatrix,
+                ),
+            )
+            and op[0].name not in valid_names
+        ):
+            name = op[0].name
+            if valid_name(name):
+                valid_names.append(name)
+
+        elif isinstance(op[0], (QuantumControl, ClassicalControl)):
+            if (
+                isinstance(op[0].qop, (BasicGate, InverseBasicGate, Sequence))
+                and op[0].qop.name not in valid_names
+            ):
+                name = op[0].qop.name
+                if valid_name(name):
+                    valid_names.append(name)
+
+    invalid_names = []  # store all invalid BasicGate names
+    name_map = {}  # store invalid BasicGate names and their modified names
+    duplicate_initials = {}
+
+    for op in seq.gatesAndTargets:
+        if (
+            isinstance(
+                op[0],
+                (
+                    BasicGate,
+                    InverseBasicGate,
+                    Sequence,
+                    SetBits,
+                    SetQubits,
+                    SetDensityMatrix,
+                ),
+            )
+            and op[0].name not in invalid_names
+        ):
+            name = op[0].name
+            if not valid_name(name):
+                invalid_names.append(name)
+
+        elif isinstance(op[0], (QuantumControl, ClassicalControl)):
+            if (
+                isinstance(op[0].qop, (BasicGate, InverseBasicGate, Sequence))
+                and op[0].qop.name not in invalid_names
+            ):
+                name = op[0].qop.name
+                if not valid_name(name):
+                    invalid_names.append(name)
+
+    for name in invalid_names:
+        inverse_seq = False
+        if name.startswith("$"):  # for inverse Sequence
+            inverse_seq = True
+            name = name[1 : -len("^\\dagger$")]
+
+        if name not in list(name_map.keys()) and name[:3] in [
+            v[:3] for v in name_map.values()
+        ]:
+            duplicate_initials[name[:3]] += 1
+            new_name = name[:3] + str(duplicate_initials[name[:3]])
+            if not inverse_seq:
+                name_map[name] = new_name
+            else:
+                name_map[f"${name}^\\dagger$"] = f"${new_name}^\\dagger$"
+        elif name not in list(name_map.keys()) and name[:3] not in [
+            v[:3] for v in name_map.values()
+        ]:
+            duplicate_initials[name[:3]] = 0
+            new_name = name[:3]
+            if new_name in valid_names:
+                duplicate_initials[new_name] += 1
+                new_name = new_name + str(duplicate_initials[new_name])
+            if not inverse_seq:
+                name_map[name] = new_name
+            else:
+                name_map[f"${name}^\\dagger$"] = f"${new_name}^\\dagger$"
+
     predefined_styles = {
         "geqo": {
             "fig_facecolor": "bisque",
@@ -2143,6 +2282,7 @@ def plot_mpl(
                         backend=backend,
                         greek_symbol=greek_symbol,
                         measure_bit=measure_bit,
+                        name_map=name_map,
                         **kwargs,
                     )
                 elif isinstance(gate, (QuantumControl, ClassicalControl)):
@@ -2155,6 +2295,7 @@ def plot_mpl(
                         i=i_col,
                         backend=backend,
                         greek_symbol=greek_symbol,
+                        name_map=name_map,
                         **kwargs,
                     )
                 else:
@@ -2168,6 +2309,7 @@ def plot_mpl(
                         backend=backend,
                         greek_symbol=greek_symbol,
                         measure_bit=measure_bit,
+                        name_map=name_map,
                         **kwargs,
                     )
                 """draw_func = (
@@ -2195,6 +2337,11 @@ def plot_mpl(
 
     if filename is not None:
         fig.savefig(f"{filename}.png", dpi=300, bbox_inches="tight")
+
+    if len(name_map) != 0:
+        print("The sequence involves long gate labels. They are renamed as:")
+        for key, item in name_map.items():
+            print(f"{key} -> {item}")
 
 
 #########################################################

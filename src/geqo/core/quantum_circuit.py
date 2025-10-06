@@ -124,7 +124,8 @@ class Sequence(QuantumOperation):
             qt = self.gatesAndTargets[i][1]
             ct = self.gatesAndTargets[i][2]
             newGatesAndTargets.append((g, qt, ct))
-        return Sequence(self.qubits, self.bits, newGatesAndTargets)
+        name = f"${self.name}^\\dagger$" if self.name is not None else None
+        return Sequence(self.qubits, self.bits, newGatesAndTargets, name)
 
     def getEquivalentSequence(self):
         """

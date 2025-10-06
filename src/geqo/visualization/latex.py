@@ -191,6 +191,97 @@ def tolatex(
     else:
         num_rows = len(columns) // fold + 1
 
+    # store all valid BasicGate names
+    valid_names = []
+
+    for op in seq.gatesAndTargets:
+        if (
+            isinstance(
+                op[0],
+                (
+                    BasicGate,
+                    InverseBasicGate,
+                    Sequence,
+                    SetBits,
+                    SetQubits,
+                    SetDensityMatrix,
+                ),
+            )
+            and op[0].name not in valid_names
+        ):
+            name = op[0].name
+            if valid_name(name):
+                valid_names.append(name)
+
+        elif isinstance(op[0], (QuantumControl, ClassicalControl)):
+            if (
+                isinstance(op[0].qop, (BasicGate, InverseBasicGate, Sequence))
+                and op[0].qop.name not in valid_names
+            ):
+                name = op[0].qop.name
+                if valid_name(name):
+                    valid_names.append(name)
+
+    invalid_names = []  # store all invalid BasicGate names
+    name_map = {}  # store invalid BasicGate names and their modified names
+    duplicate_initials = {}
+
+    for op in seq.gatesAndTargets:
+        if (
+            isinstance(
+                op[0],
+                (
+                    BasicGate,
+                    InverseBasicGate,
+                    Sequence,
+                    SetBits,
+                    SetQubits,
+                    SetDensityMatrix,
+                ),
+            )
+            and op[0].name not in invalid_names
+        ):
+            name = op[0].name
+            if not valid_name(name):
+                invalid_names.append(name)
+
+        elif isinstance(op[0], (QuantumControl, ClassicalControl)):
+            if (
+                isinstance(op[0].qop, (BasicGate, InverseBasicGate, Sequence))
+                and op[0].qop.name not in invalid_names
+            ):
+                name = op[0].qop.name
+                if not valid_name(name):
+                    invalid_names.append(name)
+
+    for name in invalid_names:
+        inverse_seq = False
+        if name.startswith("$"):  # for inverse Sequence
+            inverse_seq = True
+            name = name[1 : -len("^\\dagger$")]
+
+        if name not in list(name_map.keys()) and name[:3] in [
+            v[:3] for v in name_map.values()
+        ]:
+            duplicate_initials[name[:3]] += 1
+            new_name = name[:3] + str(duplicate_initials[name[:3]])
+            if not inverse_seq:
+                name_map[name] = new_name
+            else:
+                name_map[f"${name}^\\dagger$"] = f"${new_name}^\\dagger$"
+        elif name not in list(name_map.keys()) and name[:3] not in [
+            v[:3] for v in name_map.values()
+        ]:
+            duplicate_initials[name[:3]] = 0
+            new_name = name[:3]
+            if new_name in valid_names:
+                duplicate_initials[new_name] += 1
+                new_name = new_name + str(duplicate_initials[new_name])
+            if not inverse_seq:
+                name_map[name] = new_name
+            else:
+                name_map[f"${name}^\\dagger$"] = f"${new_name}^\\dagger$"
+
     # iterate over each circuit row
     for row in range(num_rows):
         # wrap up all the qubit wires in a dictionary, with each qubit wire's quantikz commands stored in a list
@@ -233,8 +324,15 @@ def tolatex(
                     if isinstance(
                         gates[i], (BasicGate, InverseBasicGate, Sequence)
                     ):  # self-defined gate or Sequence
-                        valid_name(gates[i].name)  # check if the name is valid
+                        # valid_name(gates[i].name)  # check if the name is valid
                         name = gates[i].name
+                        if not valid_name(name):
+                            print(f"gate name {name} not valid")
+                            name = name_map[name]
+
+                        if name.startswith("$"):  # for inverse Sequence
+                            base = name[1 : -len("^\\dagger$")]
+                            name = r"{}^\dagger".format(base)
                         name = r"{}".format(name)
                         lines[targets[i][0]].append(
                             f"\\gate[{gate_style}]{{{name}}}&"
@@ -362,13 +460,18 @@ def tolatex(
                                         "SetBits value for '%s' is not specified in the backend",
                                         name,
                                     )
+                                    if not valid_name(name):
+                                        name = name_map[name]
                                     lines[targets[i][0]].append(
                                         f"\\gate[{gate_style}]{{{name}}}&"
                                     )
 
                             else:
+                                name = gates[i].name
+                                if not valid_name(name):
+                                    name = name_map[name]
                                 lines[targets[i][0]].append(
-                                    f"\\gate[{gate_style}]{{{gates[i].name}}}&"
+                                    f"\\gate[{gate_style}]{{{name}}}&"
                                 )
 
                         elif isinstance(gates[i], SetQubits):
@@ -385,17 +488,25 @@ def tolatex(
                                         "SetQubits value for '%s' is not specified in the backend",
                                         name,
                                     )
+                                    if not valid_name(name):
+                                        name = name_map[name]
                                     lines[targets[i][0]].append(
                                         f"\\gate[{gate_style}]{{{name}}}&"
                                     )
 
                             else:
+                                name = gates[i].name
+                                if not valid_name(name):
+                                    name = name_map[name]
                                 lines[targets[i][0]].append(
-                                    f"\\gate[{gate_style}]{{{gates[i].name}}}&"
+                                    f"\\gate[{gate_style}]{{{name}}}&"
                                 )
 
                         elif isinstance(gates[i], SetDensityMatrix):
-                            name = r"\rho[{}]".format(gates[i].name)
+                            name = gates[i].name
+                            if not valid_name(name):
+                                name = name_map[name]
+                            name = r"\rho[{}]".format(name)
                             lines[targets[i][0]].append(
                                 f"\\gate[{gate_style}]{{{name}}}&"
                             )
@@ -410,8 +521,10 @@ def tolatex(
                     if isinstance(
                         gates[i], (BasicGate, InverseBasicGate, Sequence)
                     ):  # multi-qubit self-defined gate or Sequence
-                        valid_name(gates[i].name)
+                        # valid_name(gates[i].name)
                         name = gates[i].name
+                        if not valid_name(name):
+                            name = name_map[name]
 
                         for qubit in list(range(min(targets[i]), max(targets[i]) + 1)):
                             if qubit == min(targets[i]):
@@ -456,7 +569,8 @@ def tolatex(
 
                         elif isinstance(gate, (BasicGate, InverseBasicGate, Sequence)):
                             name = gate.name
-                            valid_name(name)
+                            if not valid_name(name):
+                                name = name_map[name]
 
                         else:  # geqo gates defined in geqo_gates.py
                             if isinstance(gate, (Gates.SGate, Gates.InverseSGate)):
@@ -1456,6 +1570,8 @@ def tolatex(
                                         "SetBits values for '%s' are not specified in the backend",
                                         name,
                                     )
+                                    if not valid_name(name):
+                                        name = name_map[name]
                                     for qubit in list(
                                         range(
                                             min(targets[i]),
@@ -1472,6 +1588,8 @@ def tolatex(
                                                     f"\\qw \\gateinput[{target_label_style}]{{{targets[i].index(qubit)}}}&"
                                                 )
                             else:
+                                if not valid_name(name):
+                                    name = name_map[name]
                                 for qubit in list(
                                     range(min(targets[i]), max(targets[i]) + 1)
                                 ):
@@ -1499,6 +1617,8 @@ def tolatex(
                                         "SetQubits values for '%s' are not specified in the backend",
                                         name,
                                     )
+                                    if not valid_name(name):
+                                        name = name_map[name]
                                     for qubit in list(
                                         range(
                                             min(targets[i]),
@@ -1515,6 +1635,8 @@ def tolatex(
                                                     f"\\qw \\gateinput[{target_label_style}]{{{targets[i].index(qubit)}}}&"
                                                 )
                             else:
+                                if not valid_name(name):
+                                    name = name_map[name]
                                 for qubit in list(
                                     range(min(targets[i]), max(targets[i]) + 1)
                                 ):
@@ -1529,7 +1651,10 @@ def tolatex(
                                             )
 
                         if isinstance(gates[i], SetDensityMatrix):
-                            name = r"$\rho[{}]$".format(gates[i].name)
+                            name = gates[i].name
+                            if not valid_name(name):
+                                name = name_map[name]
+                            name = r"$\rho[{}]$".format(name)
                             for qubit in list(
                                 range(min(targets[i]), max(targets[i]) + 1)
                             ):
@@ -1593,6 +1718,11 @@ def tolatex(
         if row < num_rows - 1:
             circuit.append(r"\\")  # row break for a new row of circuit
     circuit.append(r"\end{quantikz}")
+
+    if len(name_map) != 0:
+        print("The sequence involves long gate labels. They are renamed as:")
+        for key, item in name_map.items():
+            print(f"{key} -> {item}")
 
     return "\n".join(circuit)
 
