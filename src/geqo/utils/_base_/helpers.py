@@ -1,6 +1,7 @@
 import itertools
 
 from geqo.core import Sequence
+from geqo.operations import ClassicalControl, QuantumControl
 
 
 def bin2num(c):
@@ -100,18 +101,20 @@ def embedSequences(seq):
     for operation in seq.gatesAndTargets:
         gate = operation[0]
         targets = operation[1]
+        ctargets = operation[2]
         if isinstance(gate, Sequence):
             # if targets of the subsequence are integers and gate.qubits are strings, convert gate.qubits to integers
             qubits = gate.qubits
             bits = gate.bits
 
             qubitMapping = {q: targets[i] for i, q in enumerate(qubits)}
-            seq_qubits = [*range(len(seq.qubits))]
+            bitMapping = {b: ctargets[i] for i, b in enumerate(bits)}
+            """seq_qubits = [*range(len(seq.qubits))]
             seq_bits = [*range(len(seq.bits))]
             bitMapping = {
                 bits[i]: seq_bits[seq_qubits.index(qubitMapping[qubits[i]])]
                 for i in range(len(bits))
-            }
+            }"""
             for s_operation in gate.gatesAndTargets:
                 s_gate = s_operation[0]
                 s_targets = s_operation[1]
@@ -140,19 +143,45 @@ def embedSequences(seq):
                         apply_ctargets,
                     )
                 )
-                """if isinstance(s_gate, Measure):
-                    qkey_type = type(qubits[0])
-                    apply_qtargets = [
-                        qubitMapping[x]
-                        if type(x) is qkey_type
-                        else qubitMapping[qubits[x]]
-                        for x in s_targets
-                    ]
-                    ckey_type = type(bits[0])
-                    apply_ctargets = [
-                        bitMapping[x] if type(x) is ckey_type else bitMapping[bits[x]]
-                        for x in s_operation[2]
-                    ]
+        elif isinstance(gate, (QuantumControl, ClassicalControl)) and isinstance(
+            gate.qop, Sequence
+        ):  # embed subsequences in QuantumControl and ClassicalControl
+            if isinstance(gate, QuantumControl):
+                qtargets = targets[len(gate.onoff) :]
+                qubits = gate.qop.qubits
+                bits = gate.qop.bits
+
+                qubitMapping = {q: qtargets[i] for i, q in enumerate(qubits)}
+                bitMapping = {b: ctargets[i] for i, b in enumerate(bits)}
+                for s_operation in gate.qop.gatesAndTargets:
+                    if isinstance(s_operation[0], QuantumControl):
+                        s_gate = QuantumControl(
+                            gate.onoff + s_operation[0].onoff, s_operation[0].qop
+                        )
+                    else:
+                        s_gate = QuantumControl(gate.onoff, s_operation[0])
+                    s_targets = s_operation[1]
+                    if len(qubits) > 0:
+                        qkey_type = type(qubits[0])
+                        apply_qtargets = [
+                            qubitMapping[x]
+                            if type(x) is qkey_type
+                            else qubitMapping[qubits[x]]
+                            for x in s_targets
+                        ]
+                        apply_qtargets = targets[: len(gate.onoff)] + apply_qtargets
+                    else:
+                        apply_qtargets = targets[: len(gate.onoff)]
+                    if len(bits) > 0:
+                        ckey_type = type(bits[0])
+                        apply_ctargets = [
+                            bitMapping[x]
+                            if type(x) is ckey_type
+                            else bitMapping[bits[x]]
+                            for x in s_operation[2]
+                        ]
+                    else:
+                        apply_ctargets = []
                     res.append(
                         (
                             s_gate,
@@ -160,22 +189,39 @@ def embedSequences(seq):
                             apply_ctargets,
                         )
                     )
-                else:
-                    qkey_type = type(qubits[0])
-                    apply_qtargets = [
-                        qubitMapping[x]
-                        if type(x) is qkey_type
-                        else qubitMapping[qubits[x]]
-                        for x in s_targets
-                    ]
-                    res.append((s_gate, apply_qtargets))"""
-                # res.append((s_gate, [qubitMapping[x] for x in s_targets]))
+            else:  # ClassicalControl
+                qubits = gate.qop.qubits
+
+                qubitMapping = {q: targets[i] for i, q in enumerate(qubits)}
+                for s_operation in gate.qop.gatesAndTargets:
+                    if not s_operation[0].isUnitary():
+                        raise Exception(
+                            "Classically-controlled operations cannot be non-unitary."
+                        )
+                    s_gate = ClassicalControl(gate.onoff, s_operation[0])
+                    s_targets = s_operation[1]
+                    if len(qubits) > 0:
+                        qkey_type = type(qubits[0])
+                        apply_qtargets = [
+                            qubitMapping[x]
+                            if type(x) is qkey_type
+                            else qubitMapping[qubits[x]]
+                            for x in s_targets
+                        ]
+                    else:
+                        apply_qtargets = []
+                    apply_ctargets = ctargets
+                    res.append(
+                        (
+                            s_gate,
+                            apply_qtargets,
+                            apply_ctargets,
+                        )
+                    )
+
         else:
-            res.append((gate, targets, operation[2]))
-            """if isinstance(gate, Measure):
-                res.append((gate, targets, operation[2]))
-            else:
-                res.append((gate, targets))"""
+            res.append((gate, targets, ctargets))
+
     return Sequence(seq.qubits, seq.bits, res, name=seq.name)
 
 
