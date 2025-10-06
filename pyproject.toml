@@ -41,6 +41,9 @@ sympy = [
 numpy = [
     "numpy>=1.20",
 ]
+plugin = [
+    "dotenv>=0.9.9",
+]
 cupy = [
     "cupy-cuda12x>=13.0.0,<14.0.0",
 ]
@@ -64,6 +67,9 @@ sympy = [
 ]
 numpy = [
     "numpy>=1.20",
+]
+plugin = [
+    "dotenv>=0.9.9",
 ]
 cupy = [
     "cupy-cuda12x>=13.0.0,<14.0.0", 

@@ -2,6 +2,7 @@ import geqo.algorithms as algorithms
 import geqo.gates as gates
 import geqo.initialization as initialization
 import geqo.operations as operations
+import geqo.plugin as plugin
 import geqo.simulators as simulators
 import geqo.utils as utils
 from geqo.core.basic import BasicGate, InverseBasicGate
@@ -39,4 +40,5 @@ __all__ = [
     "InverseBasicGate",
     "QuantumOperation",
     "Sequence",
+    "plugin",
 ]
