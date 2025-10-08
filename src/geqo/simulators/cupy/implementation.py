@@ -428,7 +428,7 @@ class ensembleSimulatorCuPy(BaseSimulatorCupy):
                     # use numpy here to avoid GPU overhead
                     newBits = numpy.array([x for x in s])  # make a copy
                     newBits[numpy.array(classicalTargets)] = out[0]
-                    newBits = tuple(newBits)
+                    newBits = tuple([int(b) for b in newBits])
 
                     if newBits in newEnsemble:
                         previousProb = newEnsemble[newBits][0]
@@ -638,7 +638,7 @@ class mixedStateSimulatorCuPy(ensembleSimulatorCuPy):
 
                 mixedRho += resultRho
 
-                measurement[tuple(out[0])] = resultProb
+                measurement[tuple([int(b) for b in out[0]])] = resultProb
 
             if self.return_density:
                 measurement["mixed_state"] = mixedRho
