@@ -31,10 +31,13 @@ geqo/
 ├── simulators/
 │   ├── __init__.py
 │   ├── base.py
+│   ├── cupy/
+│   │   ├── __init__.py
+│   │   └── implementation.py
 │   ├── numpy/
 │   │   ├── __init__.py
 │   │   └── implementation.py
-│   └── scipy/
+│   └── sympy/
 │       ├── __init__.py
 │       └── implementation.py
 ├── utils/
