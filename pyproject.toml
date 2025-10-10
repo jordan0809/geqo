@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geqo"
-version = "0.1.1"
+version = "0.1.2"
 description = "A quantum computing framework"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -41,6 +41,12 @@ sympy = [
 numpy = [
     "numpy>=1.20",
 ]
+plugin = [
+    "dotenv>=0.9.9",
+]
+cupy = [
+    "cupy-cuda12x>=13.0.0,<14.0.0",
+]
 
 [dependency-groups]
 dev = [
@@ -61,6 +67,12 @@ sympy = [
 ]
 numpy = [
     "numpy>=1.20",
+]
+plugin = [
+    "dotenv>=0.9.9",
+]
+cupy = [
+    "cupy-cuda12x>=13.0.0,<14.0.0", 
 ]
 
 [project.urls]

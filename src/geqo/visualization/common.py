@@ -38,19 +38,34 @@ def valid_name(name: str):
     if not isinstance(name, str):
         logger.warning("invalid gate/sequence name: %s", name)
         raise TypeError("Gate/Sequence name must be a string.")
+
+    if name.startswith("$") and name.endswith(
+        "^\\dagger$"
+    ):  # This is for inverse Sequence
+        name = name[1 : -len("^\\dagger$")]
+
+    if name.startswith("$\\rho"):  # This is for SetDensityMatrix
+        name = name[len("$\\rho[") : -2]
+
     if name != r"\mathbb{R}\text{vrs}" and r"\rho" not in name:
         if len(name) > 4:
-            logger.warning("invalid gate/sequence name: %s", name)
-            raise ValueError(
-                "Gate/Sequence names with 2 or more capital letters can have at most 3 letters in total. \n Gate names with fewer than 2 capital letters can have at most 4 letters in total."
-            )
+            return False
+            # logger.warning("invalid gate/sequence name: %s", name)
+            # raise ValueError(
+            #    "Gate/Sequence names with 2 or more capital letters can have at most 3 letters in total. \n Gate names with fewer than 2 capital letters can have at most 4 letters in total."
+            # )
 
         elif sum(1 for letter in name if letter.isupper()) >= 2:
             if len(name) > 3:
-                logger.warning("invalid gate/sequence name: %s", name)
-                raise ValueError(
-                    "Gate/Sequence names with 2 or more capital letters can have at most 3 letters in total. \n Gate names with fewer than 2 capital letters can have at most 4 letters in total."
-                )
+                # logger.warning("invalid gate/sequence name: %s", name)
+                # raise ValueError(
+                #    "Gate/Sequence names with 2 or more capital letters can have at most 3 letters in total. \n Gate names with fewer than 2 capital letters can have at most 4 letters in total."
+                # )
+                return False
+            else:
+                return True
+        else:
+            return True
 
 
 def valid_angle(name: str, non_pccm: bool = True):

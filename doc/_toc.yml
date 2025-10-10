@@ -30,6 +30,7 @@ chapters:
   - file: notebooks/ToffoliDecomposition.ipynb
   - file: notebooks/PatternMatcher.ipynb
   - file: notebooks/UnitaryDecomposer.ipynb
+  - file: notebooks/CuPyGPUBenchmark.ipynb
 - file: geqo_package_architecture
 - file: api-reference
   sections:

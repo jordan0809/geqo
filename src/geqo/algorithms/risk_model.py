@@ -1,20 +1,18 @@
 import math
 
 import numpy as np
-import sympy as sym
 
-from geqo.core.basic import BasicGate
 from geqo.core.quantum_circuit import Sequence
+from geqo.gates import Ry
 from geqo.operations.controls import QuantumControl
 
-
-def getRY(phi):
-    return BasicGate("ry(" + str(phi) + ")", 1), sym.Matrix(
+"""def getRY(phi):
+    return  sym.Matrix(
         [
             [sym.cos(phi / 2), -sym.sin(phi / 2)],
             [sym.sin(phi / 2), sym.cos(phi / 2)],
         ]
-    )
+    )"""
 
 
 def RiskModel(
@@ -84,10 +82,11 @@ def RiskModel(
 
         if foundControllers is False:
             # This risk item is not triggered by transitions.
-            # Just put an uncontrolled gate in for it.
-            newGate, newValue = getRY(2 * math.asin(math.sqrt(mat[target, target])))
-            gatelist.append((newGate, [str(target)], []))
-            collectedValues[newGate.name] = newValue
+            # Just put an uncontrolled gate in for it
+            phi = 2 * math.asin(math.sqrt(mat[target, target]))
+            # newValue = getRY(phi)
+            gatelist.append((Ry(f"Φ{target}"), [str(target)], []))
+            collectedValues[f"Φ{target}"] = phi
             # qc.ry(2 * math.asin(math.sqrt(mat[target, target])), qr[target])
         else:
             # This risk item is triggered by one or more other risk items.
@@ -97,9 +96,9 @@ def RiskModel(
             controllist.append(target)
 
             # initializing at inherent probability
-            newGate, newValue = getRY(2 * math.asin(math.sqrt(mat[target, target])))
-            gatelist.append((newGate, [str(target)], []))
-            collectedValues[newGate.name] = newValue
+            phi = 2 * math.asin(math.sqrt(mat[target, target]))
+            gatelist.append((Ry(f"Φ{target}"), [str(target)], []))
+            collectedValues[f"Φ{target}"] = phi
 
             # Iterate over all subsets of control qubits using binary configurations
             for i in range(1, 2 ** len(collectedControllerIndices)):
@@ -118,22 +117,21 @@ def RiskModel(
                 # For this configuration of control qubits, turn the qubit on with
                 # the probability 1-pTargetOff, but substract the angle it was
                 # initialized in
-                newGate, newValue = getRY(
-                    2 * math.asin(math.sqrt(1 - pTargetOff))
-                    - 2 * math.asin(math.sqrt(mat[target, target]))
+                theta = 2 * math.asin(math.sqrt(1 - pTargetOff)) - 2 * math.asin(
+                    math.sqrt(mat[target, target])
                 )
                 gatelist.append(
                     (
                         QuantumControl(
                             [int(s) for s in cts],
-                            newGate,
+                            Ry(f"θ{target}"),
                         ),
                         [str(x) for x in controllist],
                         [],
                     )
                 )
-                collectedValues[newGate.name] = newValue
+                collectedValues[f"θ{target}"] = theta
 
     return Sequence(
-        [str(x) for x in list(range(len(nodes)))], [], gatelist
+        [str(x) for x in list(range(len(nodes)))], [], gatelist, "Risk"
     ), collectedValues

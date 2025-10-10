@@ -23,7 +23,7 @@ class TestHelpers:
         seq = Sequence(
             [0, 1, 2],
             [0, 1, 2],
-            [(Hadamard(), [2], []), (subseq, [2, 0], []), (CNOT(), [1, 2], [])],
+            [(Hadamard(), [2], []), (subseq, [2, 0], [0, 1]), (CNOT(), [1, 2], [])],
         )
         seq = embedSequences(seq)
         assert seq == Sequence(
@@ -33,7 +33,7 @@ class TestHelpers:
                 (Hadamard(), [2], []),
                 (CNOT(), [0, 2], []),
                 (Hadamard(), [2], []),
-                (Measure(2), [2, 0], [2, 0]),
+                (Measure(2), [2, 0], [0, 1]),
                 (CNOT(), [1, 2], []),
             ],
         )
