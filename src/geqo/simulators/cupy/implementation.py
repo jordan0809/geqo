@@ -184,6 +184,13 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
         return getQFTCuPy(gate.numberQubits, inverse=False)
     elif isinstance(gate, InverseQFT):
         return getQFTCuPy(gate.qft.numberQubits, inverse=True)
+    elif isinstance(gate, Toffoli):
+        ccx = cp.eye(8, dtype=cp.complex128)
+        ccx[6, 6] = 0.0
+        ccx[7, 7] = 0.0
+        ccx[6, 7] = 1.0
+        ccx[7, 6] = 1.0
+        return ccx
     else:
         logger.error("gate %s not implemented yet", gate)
         raise Exception("gate " + str(gate) + " not implemented yet")
@@ -328,7 +335,7 @@ class ensembleSimulatorCuPy(BaseSimulatorCupy):
 
         # If there is a decomposition into a sequence of other gates, then use it.
         elif gate.hasDecomposition() is True and not isinstance(
-            gate, (QFT, InverseQFT)
+            gate, (QFT, InverseQFT, Toffoli)
         ):
             dec = gate.getEquivalentSequence()
             qubitMapping = {}
@@ -552,7 +559,7 @@ class mixedStateSimulatorCuPy(ensembleSimulatorCuPy):
 
         # If there is a decomposition into a sequence of other gates, then use it.
         elif gate.hasDecomposition() is True and not isinstance(
-            gate, (QFT, InverseQFT)
+            gate, (QFT, InverseQFT, Toffoli)
         ):
             dec = gate.getEquivalentSequence()
             qubitMapping = {}
@@ -754,7 +761,7 @@ class unitarySimulatorCuPy(BaseSimulatorCupy):
 
         # If there is a decomposition into a sequence of other gates, then use it.
         elif gate.hasDecomposition() is True and not isinstance(
-            gate, (QFT, InverseQFT)
+            gate, (QFT, InverseQFT, Toffoli)
         ):
             dec = gate.getEquivalentSequence()
             qubitMapping = {}
@@ -868,7 +875,7 @@ class statevectorSimulatorCuPy(BaseSimulatorCupy):
 
         # If there is a decomposition into a sequence of other gates, then use it.
         elif gate.hasDecomposition() is True and not isinstance(
-            gate, (QFT, InverseQFT)
+            gate, (QFT, InverseQFT, Toffoli)
         ):
             dec = gate.getEquivalentSequence()
             qubitMapping = {}

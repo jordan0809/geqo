@@ -1,5 +1,7 @@
 import math
+import cmath
 from itertools import combinations
+import random
 
 from geqo.core.basic import BasicGate, InverseBasicGate
 from geqo.core.quantum_circuit import Sequence
@@ -1467,18 +1469,22 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 phi = np.angle(c) + np.angle(s) + np.pi
                 lam = np.angle(c) - np.angle(s) - np.pi
                 if np.abs(theta) > 1e-3:
-                    params[f"θ{i}{j}"] = theta
+                    # params[f"θ{i}{j}"] = theta
+                    params[f"{theta}"] = theta
                 if np.abs(phi) > 1e-3:
-                    params[f"φ{i}{j}"] = phi
+                    # params[f"φ{i}{j}"] = phi
+                    params[f"{phi}"] = phi
                 if np.abs(lam) > 1e-3:
-                    params[f"λ{i}{j}"] = lam
+                    # params[f"λ{i}{j}"] = lam
+                    params[f"{lam}"] = lam
             else:
                 G = np.array([[np.conj(c), np.conj(s)], [-s, c]])
                 params[f"G{i}{j}"] = G
 
             correction_phase_after_G = -np.angle(-s * r0 + c * r1)
             if abs(float(correction_phase_after_G)) > 1e-3:
-                params[f"g{i * 2**n + j}"] = correction_phase_after_G
+                # params[f"g{i * 2**n + j}"] = correction_phase_after_G
+                params[f"{correction_phase_after_G}"] = correction_phase_after_G
 
             ibin = num2bin(i, n)
             jbin = num2bin(j, n)
@@ -1506,7 +1512,8 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 if np.abs(lam) > 1e-3:
                     op.append(
                         (
-                            Rz(f"λ{i}{j}"),
+                            # Rz(f"λ{i}{j}"),
+                            Rz(f"{lam}"),
                             targets + [first_diff],
                             [],
                         )
@@ -1514,7 +1521,8 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 if np.abs(theta) > 1e-3:
                     op.append(
                         (
-                            Ry(f"θ{i}{j}"),
+                            # Ry(f"θ{i}{j}"),
+                            Ry(f"{theta}"),
                             targets + [first_diff],
                             [],
                         )
@@ -1522,7 +1530,8 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 if np.abs(phi) > 1e-3:
                     op.append(
                         (
-                            Rz(f"φ{i}{j}"),
+                            # Rz(f"φ{i}{j}"),
+                            Rz(f"{phi}"),
                             targets + [first_diff],
                             [],
                         )
@@ -1530,7 +1539,8 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 if np.abs(correction_phase_after_G) > 1e-3:
                     op.append(
                         (
-                            Phase(f"g{i * 2**n + j}"),
+                            # Phase(f"g{i * 2**n + j}"),
+                            Phase(f"{correction_phase_after_G}"),
                             targets + [first_diff],
                             [],
                         )
@@ -1540,7 +1550,8 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                     if np.abs(lam) > 1e-3:
                         op.append(
                             (
-                                QuantumControl(ctrl_bits, Rz(f"λ{i}{j}")),
+                                # QuantumControl(ctrl_bits, Rz(f"λ{i}{j}")),
+                                QuantumControl(ctrl_bits, Rz(f"{lam}")),
                                 targets + [first_diff],
                                 [],
                             )
@@ -1548,7 +1559,8 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                     if np.abs(theta) > 1e-3:
                         op.append(
                             (
-                                QuantumControl(ctrl_bits, Ry(f"θ{i}{j}")),
+                                # QuantumControl(ctrl_bits, Ry(f"θ{i}{j}")),
+                                QuantumControl(ctrl_bits, Ry(f"{theta}")),
                                 targets + [first_diff],
                                 [],
                             )
@@ -1556,7 +1568,8 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                     if np.abs(phi) > 1e-3:
                         op.append(
                             (
-                                QuantumControl(ctrl_bits, Rz(f"φ{i}{j}")),
+                                # QuantumControl(ctrl_bits, Rz(f"φ{i}{j}")),
+                                QuantumControl(ctrl_bits, Rz(f"{phi}")),
                                 targets + [first_diff],
                                 [],
                             )
@@ -1574,7 +1587,10 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
                 if np.abs(correction_phase_after_G) > 1e-3:
                     op.append(
                         (
-                            QuantumControl(ctrl_bits, Phase(f"g{i * 2**n + j}")),
+                            # QuantumControl(ctrl_bits, Phase(f"g{i * 2**n + j}")),
+                            QuantumControl(
+                                ctrl_bits, Phase(f"{correction_phase_after_G}")
+                            ),
                             targets + [first_diff],
                             [],
                         )
@@ -1598,7 +1614,7 @@ def unitaryDecomposer(u, decompose_givens: bool = False):
 
     seq = Sequence([*range(n)], [], op)
     if len(seq.gatesAndTargets) == 0:
-        print("The input matrix is identity. Now decomposition is required.")
+        print("The input matrix is identity. No decomposition is required.")
 
     return seq, params
 
@@ -1639,9 +1655,401 @@ def stateInitialize(state):
     return seq, params
 
 
+def u3_params_parser(U, eps=1e-12):
+    """
+    This function computes (theta, phi, lambda) such that U = U3(theta, phi, lambda).
+
+    U3(theta, phi, lam) = Rz(φ)Ry(θ)Rz(λ) = [[cos(theta/2), -exp(i*lam)*sin(theta/2)],
+    [exp(i*phi)*sin(theta/2), exp(i*(phi+lam))*cos(theta/2)]]
+
+    Parameters
+    ----------
+    U: The target unitary matrix.
+
+    eps: threshold of the imaginary part when forcing numerical realness.
+
+    Returns
+    -------
+    theta: The Ry rotation angle.
+
+    phi: The left Rz rotaion angle.
+
+    lam: The right Rz rotation angle.
+
+    """
+    if len(U) != 2:
+        raise ValueError("Input unitary must be a SU(2).")
+
+    # Remove global phase so top-left element is real and >= 0
+    a = U[0][0]
+    g = cmath.phase(a)  # global phase
+    Up = [[U[i][j] * cmath.exp(-1j * g) for j in range(2)] for i in range(2)]
+
+    a_p, b_p = Up[0]
+    c_p, d_p = Up[1]
+
+    # enforce numerical realness for a_p
+    a_real = a_p.real if abs(a_p.imag) < eps else a_p
+    if abs(a_real.imag) > eps:
+        raise ValueError(
+            "Unexpected imaginary part in top-left after removing global phase."
+        )
+
+    a_val = max(min(a_real.real, 1.0), -1.0)  # clip to [-1, 1]
+    theta = 2 * math.acos(a_val)
+
+    s = math.sin(theta / 2)
+    if abs(s) < eps:
+        # Special case: theta ≈ 0
+        phi = 0.0
+        lam = cmath.phase(d_p) - cmath.phase(a_p)
+    else:
+        lam = cmath.phase(-b_p / s)
+        phi = cmath.phase(c_p / s)
+
+    # normalize angles into [-pi, pi)
+    def norm_ang(x):
+        return (x + math.pi) % (2 * math.pi) - math.pi
+
+    return float(theta), norm_ang(phi), norm_ang(lam)
+
+
+def decompose_mcu(U, onoff, targets, num_qubits):
+    """
+    Decompose a multi-controlled SU(2) gate into Toffoli + single-qubit rotation gates.
+    The method is based onBarenco et al. (1995) (Lemma 7.9 + Lemma 4.3 +Lemma 5.1)
+
+    Parameters
+    ----------
+    U: The controlled unitary matrix to be decomposed. The target operation is (QuantumControl(onoff,U), targets).
+
+    onoff: A list of control qubit states.
+
+    targets: A list of target indices.
+
+    num_quits: Total number of qubits in the circuit where the gate is embedded.
+
+    Returns
+    -------
+    seq: The decomposed Sequence instance.
+
+    param_values: A dictionary storing the parameter values of the sequence.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        raise ImportError(
+            "NumPy package is required for the `unitaryDecomposer` function."
+        )
+
+    theta, phi, lam = u3_params_parser(U)
+
+    ctrls = targets[:-1]
+    target = targets[-1]
+    n = len(targets)
+
+    # correct global phase shift
+    def ry(angle):
+        return np.array(
+            [
+                [np.cos(angle / 2), -np.sin(angle / 2)],
+                [np.sin(angle / 2), np.cos(angle / 2)],
+            ]
+        )
+
+    def rz(angle):
+        return np.array([[np.exp(-1j * angle / 2), 0], [0, np.exp(1j * angle / 2)]])
+
+    x = np.array([[0, 1], [1, 0]], dtype=complex)
+    if n >= 3:
+        decom_A = (
+            rz(phi)
+            @ ry(theta / 4)
+            @ x
+            @ ry(-theta / 4)
+            @ rz(-phi / 2)
+            @ x
+            @ rz(-phi / 2)
+        )
+        decom_B = (
+            rz(0)
+            @ ry(-theta / 4)
+            @ x
+            @ ry(theta / 4)
+            @ rz((phi + lam) / 4)
+            @ x
+            @ rz(-(phi + lam) / 4)
+        )
+        decom_C = (
+            rz(0) @ ry(0) @ x @ ry(0) @ rz((phi - lam) / 4) @ x @ rz((lam - phi) / 4)
+        )
+        decom = decom_A @ x @ decom_B @ x @ decom_C
+    else:  # n =2 single control
+        decom = (
+            rz(phi)
+            @ ry(theta / 2)
+            @ x
+            @ ry(-theta / 2)
+            @ rz(-(phi + lam) / 2)
+            @ x
+            @ rz((lam - phi) / 2)
+        )
+    ratio = U / decom  # calculate phase shift
+    complex_value = ratio[(~np.isnan(ratio)) & (ratio != 0)][
+        0
+    ]  # nonzero and non-nan element
+    phase = np.angle(complex_value)
+
+    param_values = {}  # store rotation angles and global phase correction
+    if abs(phase) > 1e-6:
+        param_values[f"{phase}"] = phase
+    # Lemma 5.1
+    A = []
+    if n < 3:  # single-control
+        A.extend([(Ry(f"{theta}/2"), [target], []), (Rz(f"{phi}"), [target], [])])
+        param_values.update({f"{theta}/2": theta / 2, f"{phi}": phi})
+    else:
+        Aa = [(Ry(f"{theta}/4"), [target], []), (Rz(f"{phi}"), [target], [])]
+        Ab = [(Rz(f"-{phi}/2"), [target], []), (Ry(f"-{theta}/4"), [target], [])]
+        Ac = [(Rz(f"-{phi}/2"), [target], [])]
+        A.extend(Ac)
+        A.append((CNOT(), [ctrls[-1], target], []))
+        A.extend(Ab)
+        A.append((CNOT(), [ctrls[-1], target], []))
+        A.extend(Aa)
+        param_values.update(
+            {
+                f"{theta}/4": theta / 4,
+                f"{phi}": phi,
+                f"-{phi}/2": -phi / 2,
+                f"-{theta}/4": -theta / 4,
+            }
+        )
+
+    B = []
+    if n < 3:
+        B.extend(
+            [(Rz(f"-{phi + lam}/2"), [target], []), (Ry(f"-{theta}/2"), [target], [])]
+        )
+        param_values.update(
+            {f"-{phi + lam}/2": -(phi + lam) / 2, f"-{theta}/2": -(theta) / 2}
+        )
+    else:
+        Ba = [(Ry(f"-{theta}/4"), [target], [])]
+        Bb = [(Rz(f"{phi + lam}/4"), [target], []), (Ry(f"{theta}/4"), [target], [])]
+        Bc = [(Rz(f"-{phi + lam}/4"), [target], [])]
+        B.extend(Bc)
+        B.append((CNOT(), [ctrls[-1], target], []))
+        B.extend(Bb)
+        B.append((CNOT(), [ctrls[-1], target], []))
+        B.extend(Ba)
+        param_values.update(
+            {f"{phi + lam}/4": (phi + lam) / 4, f"-{phi + lam}/4": -(phi + lam) / 4}
+        )
+
+    C = []
+    if n < 3:
+        C.extend([(Rz(f"{lam - phi}/2"), [target], [])])
+        param_values.update({f"{lam - phi}/2": (lam - phi) / 2})
+    else:
+        Cb = [(Rz(f"{phi - lam}/4"), [target], [])]
+        Cc = [(Rz(f"{lam - phi}/4"), [target], [])]
+        C.extend(Cc)
+        C.append((CNOT(), [ctrls[-1], target], []))
+        C.extend(Cb)
+        C.append((CNOT(), [ctrls[-1], target], []))
+        param_values.update(
+            {f"{phi - lam}/4": (phi - lam) / 4, f"{lam - phi}/4": (lam - phi) / 4}
+        )
+
+    op = [(PauliX(), [ctrls[idx]], []) for idx, value in enumerate(onoff) if value == 0]
+
+    # Lemma 7.9
+    op.extend(C)
+    if n < 4:
+        if n == 3:
+            op.append((CNOT(), ctrls[:-1] + [target], []))
+        else:  # n = 2 (single-control) #Lemma 5.1
+            op.append((CNOT(), targets, []))
+    else:
+        mcx, sub_params = decompose_mcx(
+            [1] * (n - 2), ctrls[:-1] + [target], num_qubits
+        )  # subparams should be empty dict here
+        for gnt in mcx.gatesAndTargets:
+            op.append(gnt)
+        param_values.update(sub_params)
+    op.extend(B)
+    if n < 4:
+        if n == 3:
+            op.append((CNOT(), ctrls[:-1] + [target], []))
+        else:  # n=2 (single control) # Lemma 5.1
+            op.append((CNOT(), targets, []))
+    else:
+        mcx, sub_params = decompose_mcx(
+            [1] * (n - 2), ctrls[:-1] + [target], num_qubits
+        )
+        for gnt in mcx.gatesAndTargets:
+            op.append(gnt)
+        param_values.update(sub_params)
+    op.extend(A)
+
+    # global phase correction
+    if abs(phase) > 1e-6:
+        if n < 3:
+            op.append((Phase(f"{phase}"), ctrls, []))
+        else:
+            mcp, mcp_params = decompose_mcp(phase, [1] * (n - 2), ctrls, num_qubits)
+            for gnt in mcp.gatesAndTargets:
+                op.append(gnt)
+            param_values.update(mcp_params)
+
+    op.extend(
+        [(PauliX(), [ctrls[idx]], []) for idx, value in enumerate(onoff) if value == 0]
+    )
+
+    # Omit zero angles
+    drop_angles = []
+    for key, value in param_values.items():
+        if abs(value) < 1e-6:
+            drop_angles.append(key)
+
+    for key in drop_angles:
+        del param_values[key]
+
+    op = [
+        gnt
+        for gnt in op
+        if not (isinstance(gnt[0], (Ry, Rz, Phase)) and gnt[0].name in drop_angles)
+    ]
+
+    seq = Sequence([*range(num_qubits)], [], op)
+
+    return seq, param_values
+
+
+def decompose_mcp(theta: float, onoff: list[int], targets: list[int], num_qubits: int):
+    """
+    This function decomposes a multi-controlled Phase (MCP) gate into a sequence of Toffoli gates, Rz and Phase gates.
+    The method is based on the recursive application of Barenco et al. (1995) Lemma 7.5
+
+    Parameters
+    ----------
+    theta: The Phase angle.
+
+    onoff: The list of control conditions.
+
+    targets: Indices of the target qubits for the MCP gate.
+
+    num_quits: Total number of qubits in the circuit where the gate is embedded.
+
+    Returns
+    -------
+    seq: The decomposed Sequence instance.
+    """
+    if len(onoff) != len(targets) - 1:
+        raise ValueError("Number of control qubits do not match the specified targets")
+
+    target = targets[-1]
+    ctrls = targets[:-1]
+
+    if len(onoff) == 1:  # single-control Phase decomposition
+        op = [(PauliX(), ctrls, [])] if onoff[0] == 0 else []
+        op.append((CNOT(), targets, []))
+        op.append((Rz(f"-{theta}/2"), [target], []))
+        op.append((CNOT(), targets, []))
+        op.append((Rz(f"{theta}/2"), [target], []))
+        op.append((Phase(f"{theta}/2"), ctrls, []))
+        if onoff[0] == 0:
+            op.append((PauliX(), ctrls, []))
+
+        params = {f"-{theta}/2": -theta / 2, f"{theta}/2": theta / 2}
+
+    else:  # more than 1 control qubits
+        op = [
+            (PauliX(), [ctrls[idx]], [])
+            for idx, value in enumerate(onoff)
+            if value == 0
+        ]
+        params = {}
+        for r in range(len(onoff) - 1):
+            last_ctrl = ctrls[-(1 + r)]
+            alpha = theta / 2 ** (1 + r)
+
+            # single control phase decomposition
+            op.append((CNOT(), [last_ctrl, target], []))
+            op.append((Rz(f"-{alpha}/2"), [target], []))
+            op.append((CNOT(), [last_ctrl, target], []))
+            op.append((Rz(f"{alpha}/2"), [target], []))
+            op.append((Phase(f"{alpha}/2"), [last_ctrl], []))
+            params.update({f"-{alpha}/2": -alpha / 2, f"{alpha}/2": alpha / 2})
+
+            # MCX
+            if len(onoff) - 1 - r == 1:
+                op.append((CNOT(), ctrls[: len(onoff) - r], []))
+            else:
+                mcx, mcx_params = decompose_mcx(
+                    [1] * (len(onoff) - 1 - r), ctrls[: len(onoff) - r], num_qubits
+                )
+                for gnt in mcx.gatesAndTargets:
+                    op.append(gnt)
+                params.update(mcx_params)
+
+            # single-control phase decomposition
+            op.append((CNOT(), [last_ctrl, target], []))
+            op.append((Rz(f"{alpha}/2"), [target], []))
+            op.append((CNOT(), [last_ctrl, target], []))
+            op.append((Rz(f"-{alpha}/2"), [target], []))
+            op.append((Phase(f"-{alpha}/2"), [last_ctrl], []))
+
+            # MCX
+            if len(onoff) - 1 - r == 1:
+                op.append((CNOT(), ctrls[: len(onoff) - r], []))
+            else:
+                mcx, mcx_params = decompose_mcx(
+                    [1] * (len(onoff) - 1 - r), ctrls[: len(onoff) - r], num_qubits
+                )
+                for gnt in mcx.gatesAndTargets:
+                    op.append(gnt)
+                params.update(mcx_params)
+
+        # final control phase
+        op.append((CNOT(), [ctrls[0], target], []))
+        op.append((Rz(f"-{alpha}/2"), [target], []))
+        op.append((CNOT(), [ctrls[0], target], []))
+        op.append((Rz(f"{alpha}/2"), [target], []))
+        op.append((Phase(f"{alpha}/2"), [ctrls[0]], []))
+
+        op.extend(
+            [
+                (PauliX(), [ctrls[idx]], [])
+                for idx, value in enumerate(onoff)
+                if value == 0
+            ]
+        )
+
+    # Omit zero angles
+    drop_angles = []
+    for key, value in params.items():
+        if abs(value) < 1e-6:
+            drop_angles.append(key)
+
+    for key in drop_angles:
+        del params[key]
+
+    op = [
+        gnt
+        for gnt in op
+        if not (isinstance(gnt[0], (Phase, Rz)) and gnt[0].name in drop_angles)
+    ]
+
+    seq = Sequence([*range(num_qubits)], [], op)
+
+    return seq, params
+
+
 def decompose_mcx(onoff: list[int], targets: list[int], num_qubits: int):
     """
-    This function decomposes a multi-controlled X (MCX) gate into a sequence of Toffoli gates. The method is based on Barenco et al. (1995) Lemma 7.2
+    This function decomposes a multi-controlled X (MCX) gate into a sequence of Toffoli gates. The method is based on Barenco et al. (1995) Lemma 7.2 and 7.3
 
     Parameters
     ----------
@@ -1655,93 +2063,202 @@ def decompose_mcx(onoff: list[int], targets: list[int], num_qubits: int):
     -------
     seq: The decomposed Sequence instance.
     """
-    m = len(onoff)
 
-    if m > math.floor(num_qubits / 2):
-        raise ValueError(
-            f"maximum number of control qubits is {math.floor(num_qubits / 2)}."
+    if len(onoff) == 2:  # Toffoli gates
+        target = targets[-1]
+        ctrls = targets[:-1]
+
+        theta = math.pi / 4
+        plus = Phase(f"{theta}")
+        minus = Phase(f"-{theta}")
+        op = [(PauliX(), [t], []) for idx, t in enumerate(ctrls) if onoff[idx] == 0]
+        toffoli = [
+            (Hadamard(), [target], []),
+            (CNOT(), [ctrls[-1], target], []),
+            (minus, [target], []),
+            (CNOT(), [ctrls[0], target], []),
+            (plus, [target], []),
+            (CNOT(), [ctrls[-1], target], []),
+            (minus, [target], []),
+            (CNOT(), [ctrls[0], target], []),
+            (plus, [ctrls[-1]], []),
+            (plus, [target], []),
+            (CNOT(), ctrls, []),
+            (Hadamard(), [target], []),
+            (plus, [ctrls[0]], []),
+            (minus, [ctrls[-1]], []),
+            (CNOT(), ctrls, []),
+        ]
+        op.extend(toffoli)
+        op.extend(
+            [(PauliX(), [t], []) for idx, t in enumerate(ctrls) if onoff[idx] == 0]
         )
-    if m < 3:
-        raise ValueError("minimum number of control qubits is 3.")
+        params = {f"{theta}": theta, f"-{theta}": -theta}
 
-    last_ctrl = m - 1
+    elif num_qubits > 5 and len(onoff) == num_qubits - 2:  # Lemma 7.3
+        if num_qubits < 5:
+            raise ValueError("minimum number of qubits is 5")
+        low = max(2, num_qubits - 1 - math.floor(num_qubits / 2))
+        high = min(math.floor(num_qubits / 2), num_qubits - 3)
+        m = random.randint(low, high)
+        nbig = max(m, num_qubits - m - 1)
+        nsmall = min(m, num_qubits - m - 1)
 
-    ctrls = targets[:-1]
-    idle = [i for i in range(num_qubits) if i not in targets]
+        target = targets[-1]
+        ctrls = targets[:-1]
+        idle = [i for i in range(num_qubits) if i not in targets][0]
 
-    mapping = [0] * num_qubits
-    mapping[:m] = ctrls
-    mapping[m : num_qubits - 1] = idle
-    mapping[num_qubits - 1] = targets[-1]
+        if nbig >= 3:
+            big_seq, subparams_big = decompose_mcx(
+                [1] * nbig, ctrls[:nbig] + [idle], num_qubits
+            )  # subparams should be empty
+            big_op = big_seq.gatesAndTargets
+        else:
+            big_op = [(QuantumControl([1] * nbig, PauliX()), ctrls[:nbig] + [idle], [])]
 
-    op = [(PauliX(), [t], []) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
+        if nsmall >= 3:
+            small_seq, subparams_small = decompose_mcx(
+                [1] * nsmall, ctrls[nbig:] + [idle] + [target], num_qubits
+            )  # subparams should be empty
+            small_op = small_seq.gatesAndTargets
+        else:
+            small_op = [
+                (
+                    QuantumControl([1] * nsmall, PauliX()),
+                    ctrls[nbig:] + [idle] + [target],
+                    [],
+                )
+            ]
 
-    op.append(
-        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]], [])
-    )
-    for i in reversed(range(last_ctrl - 2)):
+        op = [(PauliX(), [t], []) for idx, t in enumerate(ctrls) if onoff[idx] == 0]
+        op.extend((big_op + small_op) * 2)
+        op.extend(
+            [(PauliX(), [t], []) for idx, t in enumerate(ctrls) if onoff[idx] == 0]
+        )
+        params = {}
+
+    elif num_qubits > 3 and len(onoff) > math.floor(
+        num_qubits / 2
+    ):  # decompose C^n-X into H C^n-P(π) H
+        target = targets[-1]
+        ctrls = targets[:-1]
+
+        op = [(PauliX(), [t], []) for idx, t in enumerate(ctrls) if onoff[idx] == 0]
+        op.append((Hadamard(), [target], []))
+        mcp, params = decompose_mcp(math.pi, [1] * len(onoff), targets, num_qubits)
+        for gnt in mcp.gatesAndTargets:
+            op.append(gnt)
+        op.append((Hadamard(), [target], []))
+        op.extend(
+            [(PauliX(), [t], []) for idx, t in enumerate(ctrls) if onoff[idx] == 0]
+        )
+
+    else:  # Lemma 7.2  (3 <= len(onoff) <= math.floor(num_qubits/2))
+        if num_qubits < 5:
+            raise ValueError("minimum number of qubits is 5")
+        m = len(onoff)
+
+        if m > math.floor(num_qubits / 2):
+            raise ValueError(
+                f"maximum number of control qubits is {math.floor(num_qubits / 2)}."
+            )
+        if m < 3:
+            raise ValueError("minimum number of control qubits is 3.")
+
+        last_ctrl = m - 1
+
+        ctrls = targets[:-1]
+        idle = [i for i in range(num_qubits) if i not in targets]
+
+        mapping = [0] * num_qubits
+        mapping[:m] = ctrls
+        mapping[m : num_qubits - 1] = idle
+        mapping[num_qubits - 1] = targets[-1]
+
+        op = [
+            (PauliX(), [t], []) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0
+        ]
+
         op.append(
             (
                 Toffoli(),
-                [
-                    mapping[2 + i],
-                    mapping[last_ctrl + 1 + i],
-                    mapping[last_ctrl + 2 + i],
-                ],
+                [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]],
                 [],
             )
         )
-    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]], []))
+        for i in reversed(range(last_ctrl - 2)):
+            op.append(
+                (
+                    Toffoli(),
+                    [
+                        mapping[2 + i],
+                        mapping[last_ctrl + 1 + i],
+                        mapping[last_ctrl + 2 + i],
+                    ],
+                    [],
+                )
+            )
+        op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]], []))
 
-    for i in range(last_ctrl - 2):
-        op.append(
-            (
-                Toffoli(),
-                [
-                    mapping[2 + i],
-                    mapping[last_ctrl + 1 + i],
-                    mapping[last_ctrl + 2 + i],
-                ],
-                [],
+        for i in range(last_ctrl - 2):
+            op.append(
+                (
+                    Toffoli(),
+                    [
+                        mapping[2 + i],
+                        mapping[last_ctrl + 1 + i],
+                        mapping[last_ctrl + 2 + i],
+                    ],
+                    [],
+                )
             )
-        )
-    op.append(
-        (Toffoli(), [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]], [])
-    )
-
-    for i in reversed(range(last_ctrl - 2)):
         op.append(
             (
                 Toffoli(),
-                [
-                    mapping[2 + i],
-                    mapping[last_ctrl + 1 + i],
-                    mapping[last_ctrl + 2 + i],
-                ],
-                [],
-            )
-        )
-    op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]], []))
-    for i in range(last_ctrl - 2):
-        op.append(
-            (
-                Toffoli(),
-                [
-                    mapping[2 + i],
-                    mapping[last_ctrl + 1 + i],
-                    mapping[last_ctrl + 2 + i],
-                ],
+                [mapping[last_ctrl], mapping[2 * last_ctrl - 1], mapping[-1]],
                 [],
             )
         )
 
-    op.extend(
-        [(PauliX(), [t], []) for idx, t in enumerate(targets[:-1]) if onoff[idx] == 0]
-    )
+        for i in reversed(range(last_ctrl - 2)):
+            op.append(
+                (
+                    Toffoli(),
+                    [
+                        mapping[2 + i],
+                        mapping[last_ctrl + 1 + i],
+                        mapping[last_ctrl + 2 + i],
+                    ],
+                    [],
+                )
+            )
+        op.append((Toffoli(), [mapping[0], mapping[1], mapping[last_ctrl + 1]], []))
+
+        for i in range(last_ctrl - 2):
+            op.append(
+                (
+                    Toffoli(),
+                    [
+                        mapping[2 + i],
+                        mapping[last_ctrl + 1 + i],
+                        mapping[last_ctrl + 2 + i],
+                    ],
+                    [],
+                )
+            )
+
+        op.extend(
+            [
+                (PauliX(), [t], [])
+                for idx, t in enumerate(targets[:-1])
+                if onoff[idx] == 0
+            ]
+        )
+        params = {}
 
     seq = Sequence([*range(num_qubits)], [], op)
 
-    return seq
+    return seq, params
 
 
 def Shor(N: int, a: int, decompose: bool = False):
