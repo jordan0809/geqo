@@ -7,12 +7,24 @@ from geqo.algorithms.algorithms import (
     InverseQFT,
     PermuteQubits,
     QubitReversal,
+    decompose_mcp,
+    decompose_mcu,
     stateInitialize,
+    unitaryDecomposer,
 )
+from geqo.core.basic import BasicGate
 from geqo.core.quantum_circuit import Sequence
-from geqo.gates.fundamental_gates import Hadamard, InversePhase, Phase, SwapQubits
-from geqo.gates.rotation_gates import InverseRx, InverseRy, Rx, Ry
+from geqo.gates.fundamental_gates import (
+    Hadamard,
+    InversePhase,
+    PauliY,
+    Phase,
+    SwapQubits,
+)
+from geqo.gates.multi_qubit_gates import Toffoli
+from geqo.gates.rotation_gates import InverseRx, InverseRy, Rx, Ry, Rzz
 from geqo.operations.controls import QuantumControl
+from geqo.simulators.cupy import unitarySimulatorCuPy
 from geqo.simulators.numpy import simulatorStatevectorNumpy
 
 
@@ -201,3 +213,98 @@ class TestAlgorithms:
         result = sim.state
 
         assert np.allclose(state, result.flatten(), rtol=1e-05, atol=1e-06)
+
+    def test_unitary_decomposer(self):
+        random = Sequence(
+            [0, 1, 2],
+            [],
+            [
+                (PauliY(), [1], []),
+                (Rzz("a"), [0, 2], []),
+                (Toffoli(), [2, 1, 0], []),
+                (SwapQubits(), [0, 2], []),
+                (Rx("b"), [1], []),
+            ],
+        )
+
+        sim = unitarySimulatorCuPy(3)
+        sim.setValue("a", 1.23)
+        sim.setValue("b", 4.56)
+        sim.prepareBackend([Toffoli()])
+        sim.apply(random, [0, 1, 2])
+        u2 = sim.u
+
+        # decompose the Givens operators into Ry and Rz gates
+        seq_u2, u2_params = unitaryDecomposer(u2, decompose_givens=True)
+
+        # verify if the decomposed sequence is equivalent to the u2 gate
+        sim = unitarySimulatorCuPy(3)
+        sim.values = u2_params
+        sim.setValue("u2", u2)
+        sim.apply(BasicGate("u2", 3), [0, 1, 2])
+        sim.apply(seq_u2.getInverse(), [0, 1, 2])
+        test_u2 = sim.u
+        assert np.allclose(
+            np.array(test_u2).astype(np.complex128),
+            np.identity(8).astype(np.complex128),
+            rtol=1e-05,
+            atol=1e-08,
+        )
+
+    def test_decompose_unitary_into_single_rotation_phase(self):
+        random = Sequence(
+            [0, 1, 2, 3],
+            [],
+            [
+                (PauliY(), [3], []),
+                (Rzz("a"), [0, 2], []),
+                (Toffoli(), [2, 1, 0], []),
+                (SwapQubits(), [0, 3], []),
+                (Rx("b"), [1], []),
+            ],
+        )
+
+        sim = unitarySimulatorCuPy(4)
+        sim.setValue("a", 1.23)
+        sim.setValue("b", 4.56)
+        sim.prepareBackend([Toffoli()])
+        sim.apply(random, [0, 1, 2, 3])
+        u2 = sim.u
+        seq_u2, u2_params = unitaryDecomposer(u2)
+
+        op = []
+        de_params = {}
+        for gnt in seq_u2.gatesAndTargets:
+            gate = gnt[0]
+            qtargets = gnt[1]
+            if isinstance(gate, QuantumControl) and isinstance(gate.qop, BasicGate):
+                u = u2_params[gate.qop.name]
+                givens_seq, givens_params = decompose_mcu(
+                    u, gate.onoff, qtargets, seq_u2.getNumberQubits()
+                )
+                for g in givens_seq.gatesAndTargets:
+                    op.append(g)
+                de_params.update(givens_params)
+            elif isinstance(gate, QuantumControl) and isinstance(gate.qop, Phase):
+                theta = u2_params[gate.qop.name]
+                phase_seq, phase_params = decompose_mcp(
+                    theta, gate.onoff, qtargets, seq_u2.getNumberQubits()
+                )
+                for g in phase_seq.gatesAndTargets:
+                    op.append(g)
+                de_params.update(phase_params)
+            else:
+                op.append(gnt)
+
+        de_seq = Sequence(seq_u2.qubits, seq_u2.bits, op)
+        sim = unitarySimulatorCuPy(4)
+        sim.values = de_params
+        sim.apply(de_seq, [*range(4)])
+        output = sim.u
+
+        assert np.allclose(
+            output,
+            u2,
+            rtol=1e-05,
+            atol=1e-08,
+        )
