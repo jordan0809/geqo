@@ -5,7 +5,6 @@ import tempfile
 
 from IPython.display import display
 from PIL import Image
-from sympy import Symbol
 
 import geqo.algorithms as Algorithms
 import geqo.gates as Gates
@@ -61,18 +60,24 @@ def phase_name(
 
     if backend is not None:
         try:  # if backend exists, try retrieving the assinged phase value
-            if isinstance(backend.values[name], Symbol):
-                symbol = str(backend.values[name])
-                if re.search(
-                    r"[^a-zA-Z0-9 _\-]", symbol
-                ):  # if the resulting name is not the regular text accepted by quantikz (i.e. θ)
-                    symbol = name
-                if (symbol in greek_letters) and (greek_symbol):
-                    name = greek_string.format(symbol)
+            try:
+                from sympy import Symbol
+
+                if isinstance(backend.values[name], Symbol):
+                    symbol = str(backend.values[name])
+                    if re.search(
+                        r"[^a-zA-Z0-9 _\-]", symbol
+                    ):  # if the resulting name is not the regular text accepted by quantikz (i.e. θ)
+                        symbol = name
+                    if (symbol in greek_letters) and (greek_symbol):
+                        name = greek_string.format(symbol)
+                    else:
+                        name = valid_angle(symbol, non_pccm)
+                        name = string.format(name)
                 else:
-                    name = valid_angle(symbol, non_pccm)
-                    name = string.format(name)
-            else:
+                    angle = round(backend.values[name], 2)
+                    name = string.format(angle)
+            except ImportError:
                 angle = round(backend.values[name], 2)
                 name = string.format(angle)
         except KeyError:
