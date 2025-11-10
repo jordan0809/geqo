@@ -1,0 +1,79 @@
+variables:
+  UV_VERSION: 0.7.8
+  RUFF_VERSION: 0.11.7
+  PYTHON_VERSION: 3.12
+  BASE_LAYER: bookworm-slim
+  UV_LINK_MODE: copy
+
+.base_ruff:
+  stage: build
+  interruptible: true
+  image:
+    name: ghcr.io/astral-sh/ruff:$RUFF_VERSION-alpine
+  before_script:
+    - cd $CI_PROJECT_DIR
+    - ruff --version
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual
+
+Ruff Check:
+  extends: .base_ruff
+  script:
+    - ruff check --output-format=gitlab > code-quality-report.json
+  artifacts:
+    reports:
+      codequality: $CI_PROJECT_DIR/code-quality-report.json
+
+Ruff Format:
+  extends: .base_ruff
+  script:
+    - ruff format --diff
+
+.base_pytest:
+  stage: test
+  interruptible: true
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  before_script:
+    - uv sync --extra dev --extra numpy --extra sympy --extra visualization
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - when: manual
+
+Pytest:
+  extends: .base_pytest
+  script:
+    - uv run --extra dev --extra numpy --extra sympy --extra visualization python -m pytest tests/ --cov=src/ --cov-report=xml:coverage.xml --junit-xml=junit.xml
+  artifacts:
+    when: always
+    paths:
+      - coverage.xml
+      - junit.xml
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+      junit: junit.xml
+    expire_in: 1 week
+
+pages:
+  stage: deploy
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  before_script:
+    - uv sync --extra dev --extra numpy --extra sympy --extra visualization
+  script:
+    - uv run jupyter-book build docs-site/
+    - mv docs-site/_build/html public
+  after_script:
+    - echo "Site deployed to $CI_PAGES_URL"
+  artifacts:
+    paths:
+      - public
+  pages: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == 'autogenerate-docs/zi'
+    - when: manual
