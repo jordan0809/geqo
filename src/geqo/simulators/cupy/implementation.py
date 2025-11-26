@@ -996,18 +996,39 @@ class statevectorSimulatorCuPy(BaseSimulatorCupy):
                 & 1
             ).astype(cp.int64)
 
-            for idx, sb in zip(range(len(probs)), store_bits):
+            # Broadcast current classical bits to all possible outcomes
+            all_classical = cp.broadcast_to(
+                self.classicalBits, (len(probs), self.numberBits)
+            ).copy()
+
+            all_classical[:, cp.array(classicalTargets, dtype=cp.int64)] = (
+                store_bits  # each row represents each measured outcomes
+            )
+
+            if use_cupy:
+                all_classical = cp.asnumpy(all_classical)
+                probs = cp.asnumpy(probs)
+
+            mask = probs > 1e-12
+
+            newClassicalBits = [tuple(row) for row in all_classical[mask]]
+            nonzero_probs = probs[mask]
+
+            probabilities = dict(zip(newClassicalBits, nonzero_probs.tolist()))
+
+            """for idx, sb in zip(range(len(probs)), store_bits):
                 newClassicalBits = self.classicalBits
                 for i in range(len(classicalTargets)):
                     newClassicalBits[classicalTargets[i]] = sb[i]
-                newClassicalBits = (
-                    tuple(newClassicalBits.get().tolist())
-                    if use_cupy
-                    else tuple(newClassicalBits.tolist())
-                )
+                # newClassicalBits = (
+                #    tuple(newClassicalBits.get().tolist())
+                #    if use_cupy
+                #    else tuple(newClassicalBits.tolist())
+                # )
+                newClassicalBits = tuple(newClassicalBits)
                 probabilities[newClassicalBits] = (
                     probs[idx] if probs[idx] > 0 else 0
-                )  # ignore 0 probability
+                )  # ignore 0 probability"""
 
             self.measurementResult = probabilities
 
@@ -1024,6 +1045,10 @@ class statevectorSimulatorCuPy(BaseSimulatorCupy):
 
             for i in range(len(classicalTargets)):
                 self.classicalBits[classicalTargets[i]] = bits[i]
+
+            self.classicalBits[cp.array(classicalTargets, dtype=cp.int64)] = cp.array(
+                bits, dtype=cp.int64
+            )
 
         elif isinstance(gate, SetQubits):
             logger.error("cannot set qubits in statevector simulations")
