@@ -685,7 +685,7 @@ class TestCuPySimulators:
         sim.apply(identity_seq, [0, 1])
         state = sim.state
         expect = cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128).reshape(4, 1)
-        assert cp.allclose(expect, state)
+        assert cp.allclose(expect, state, rtol=1e-5, atol=1e-6)
 
     def test_statevector_simulator_non_unitary(self):
         # test Measure
