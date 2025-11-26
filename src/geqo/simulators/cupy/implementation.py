@@ -82,26 +82,26 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
             )
         return values[gate.name].conj().T
     elif isinstance(gate, PauliX):
-        return cp.array([[0.0, 1.0], [1.0, 0.0]], dtype=cp.complex128)
+        return cp.array([[0.0, 1.0], [1.0, 0.0]], dtype=cp.complex64)
     elif isinstance(gate, PauliY):
-        return cp.array([[0.0, -1j], [1j, 0.0]], dtype=cp.complex128)
+        return cp.array([[0.0, -1j], [1j, 0.0]], dtype=cp.complex64)
     elif isinstance(gate, PauliZ):
-        return cp.array([[1.0, 0.0], [0.0, -1.0]], dtype=cp.complex128)
+        return cp.array([[1.0, 0.0], [0.0, -1.0]], dtype=cp.complex64)
     elif isinstance(gate, Phase):
         return cp.array(
-            [[1.0, 0.0], [0.0, cp.exp(1j * values[gate.name])]], dtype=cp.complex128
+            [[1.0, 0.0], [0.0, cp.exp(1j * values[gate.name])]], dtype=cp.complex64
         )
     elif isinstance(gate, InversePhase):
         return cp.array(
-            [[1.0, 0.0], [0.0, cp.exp(-1j * values[gate.name])]], dtype=cp.complex128
+            [[1.0, 0.0], [0.0, cp.exp(-1j * values[gate.name])]], dtype=cp.complex64
         )
     elif isinstance(gate, Hadamard):
         w2 = 1 / cp.sqrt(2)
-        return cp.array([[w2, w2], [w2, -w2]], dtype=cp.complex128)
+        return cp.array([[w2, w2], [w2, -w2]], dtype=cp.complex64)
     elif isinstance(gate, SGate):
-        return cp.array([[1.0, 0.0], [0.0, 1j]], dtype=cp.complex128)
+        return cp.array([[1.0, 0.0], [0.0, 1j]], dtype=cp.complex64)
     elif isinstance(gate, InverseSGate):
-        return cp.array([[1.0, 0.0], [0.0, -1j]], dtype=cp.complex128)
+        return cp.array([[1.0, 0.0], [0.0, -1j]], dtype=cp.complex64)
     elif isinstance(gate, SwapQubits):
         return cp.array(
             [
@@ -110,7 +110,7 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
                 [0.0, 1.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 1.0],
             ],
-            dtype=cp.complex128,
+            dtype=cp.complex64,
         )
     elif isinstance(gate, CNOT):
         return cp.array(
@@ -120,7 +120,7 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
                 [0.0, 0.0, 0.0, 1.0],
                 [0.0, 0.0, 1.0, 0.0],
             ],
-            dtype=cp.complex128,
+            dtype=cp.complex64,
         )
     elif isinstance(gate, PermuteQubits):
         qubits = list(range(len(gate.targetOrder)))
@@ -150,7 +150,7 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
                 [cp.exp(-1j * values[gate.name] / 2), 0.0],
                 [0.0, cp.exp(1j * values[gate.name] / 2)],
             ],
-            dtype=cp.complex128,
+            dtype=cp.complex64,
         )
     elif isinstance(gate, InverseRz):
         return cp.array(
@@ -158,7 +158,7 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
                 [cp.exp(1j * values[gate.name] / 2), 0.0],
                 [0.0, cp.exp(-1j * values[gate.name] / 2)],
             ],
-            dtype=cp.complex128,
+            dtype=cp.complex64,
         )
     elif isinstance(gate, Rzz):
         return cp.array(
@@ -168,7 +168,7 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
                 [0.0, 0.0, cp.exp(1j * values[gate.name] / 2), 0.0],
                 [0.0, 0.0, 0.0, cp.exp(-1j * values[gate.name] / 2)],
             ],
-            dtype=cp.complex128,
+            dtype=cp.complex64,
         )
     elif isinstance(gate, InverseRzz):
         return cp.array(
@@ -178,14 +178,14 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
                 [0.0, 0.0, cp.exp(-1j * values[gate.name] / 2), 0.0],
                 [0.0, 0.0, 0.0, cp.exp(1j * values[gate.name] / 2)],
             ],
-            dtype=cp.complex128,
+            dtype=cp.complex64,
         )
     elif isinstance(gate, QFT):
         return getQFTCuPy(gate.numberQubits, inverse=False)
     elif isinstance(gate, InverseQFT):
         return getQFTCuPy(gate.qft.numberQubits, inverse=True)
     elif isinstance(gate, Toffoli):
-        ccx = cp.eye(8, dtype=cp.complex128)
+        ccx = cp.eye(8, dtype=cp.complex64)
         ccx[6, 6] = 0.0
         ccx[7, 7] = 0.0
         ccx[6, 7] = 1.0
@@ -225,7 +225,7 @@ class ensembleSimulatorCuPy(BaseSimulatorCupy):
         super().__init__(numberQubits, values)
         self.numberBits = numberBits
         rho = cp.zeros(
-            (2**numberQubits, 2**numberQubits), dtype=cp.complex128
+            (2**numberQubits, 2**numberQubits), dtype=cp.complex64
         )  # rho as cupy array
         rho[0, 0] = 1.0
         self.ensemble = {}
@@ -307,7 +307,7 @@ class ensembleSimulatorCuPy(BaseSimulatorCupy):
                         for x in range(len(dec.qubits)):
                             qubitMapping[qubits[x]] = target_qubits[x]
 
-                        unitaries = cp.eye(2**self.numberQubits, dtype=cp.complex128)
+                        unitaries = cp.eye(2**self.numberQubits, dtype=cp.complex64)
                         for d in dec.gatesAndTargets:
                             op = d[0]
                             subtargets = [qubitMapping[x] for x in d[1]]
@@ -489,7 +489,7 @@ class ensembleSimulatorCuPy(BaseSimulatorCupy):
 
             qubitValues = self.values[gate.name]
             newDensityMatrix = cp.zeros(
-                (2 ** len(targets), 2 ** len(targets)), dtype=cp.complex128
+                (2 ** len(targets), 2 ** len(targets)), dtype=cp.complex64
             )
             index = bin2num(qubitValues)
             newDensityMatrix[index, index] = 1.0
@@ -534,7 +534,7 @@ class mixedStateSimulatorCuPy(ensembleSimulatorCuPy):
         self, numberQubits: int, numberBits: int, return_density: bool = False
     ):
         super().__init__(numberQubits, numberBits)
-        rho = cp.zeros((2**numberQubits, 2**numberQubits), dtype=cp.complex128)
+        rho = cp.zeros((2**numberQubits, 2**numberQubits), dtype=cp.complex64)
         rho[0, 0] = 1.0
         self.densityMatrix = rho
         self.measureHistory = []
@@ -633,7 +633,7 @@ class mixedStateSimulatorCuPy(ensembleSimulatorCuPy):
 
             measurement = {}
             mixedRho = cp.zeros(
-                (2**self.numberQubits, 2**self.numberQubits), dtype=cp.complex128
+                (2**self.numberQubits, 2**self.numberQubits), dtype=cp.complex64
             )
 
             for out in outcome:
@@ -666,7 +666,7 @@ class mixedStateSimulatorCuPy(ensembleSimulatorCuPy):
 
             qubitValues = self.values[gate.name]
             newDensityMatrix = cp.zeros(
-                (2 ** len(targets), 2 ** len(targets)), dtype=cp.complex128
+                (2 ** len(targets), 2 ** len(targets)), dtype=cp.complex64
             )
             index = bin2num(qubitValues)
             newDensityMatrix[index, index] = 1.0
@@ -705,7 +705,7 @@ class unitarySimulatorCuPy(BaseSimulatorCupy):
     def __init__(self, numberQubits: int):
         values = {}
         super().__init__(numberQubits, values)
-        self.u = cp.eye(2**numberQubits, dtype=cp.complex128)
+        self.u = cp.eye(2**numberQubits, dtype=cp.complex64)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.numberQubits})"
@@ -802,7 +802,7 @@ class statevectorSimulatorCuPy(BaseSimulatorCupy):
         if numberQubits > 32:
             raise NotImplementedError("Too many qubits, limit is 32")
 
-        self.state = cp.zeros(shape=(2**numberQubits, 1), dtype=cp.complex128)
+        self.state = cp.zeros(shape=(2**numberQubits, 1), dtype=cp.complex64)
         self.state[0, 0] = 1.0 + 0 * 1j
 
         self.measurementResult = {}

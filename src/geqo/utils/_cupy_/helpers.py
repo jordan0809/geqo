@@ -21,7 +21,7 @@ def cupyWarmup():
     a = cp.random.rand(100, 100) @ cp.random.rand(100, 1)
     b = cp.random.rand(100) * cp.random.rand(100)
     cp.dot(a.ravel(), b)
-    d = cp.zeros((1024, 1024), dtype=cp.complex128)
+    d = cp.zeros((1024, 1024), dtype=cp.complex64)
     d[cp.arange(512)[:, None], cp.arange(512)[None, :]] = 1.0 + 1.0j
     # cp.cuda.Device(0).synchronize()
 
@@ -33,7 +33,7 @@ def getRXCupy(angle):
             [cp.cos(angle / 2), -1j * cp.sin(angle / 2)],
             [-1j * cp.sin(angle / 2), cp.cos(angle / 2)],
         ],
-        dtype=cp.complex128,
+        dtype=cp.complex64,
     )
 
 
@@ -44,7 +44,7 @@ def getRYCupy(angle):
             [cp.cos(angle / 2), -cp.sin(angle / 2)],
             [cp.sin(angle / 2), cp.cos(angle / 2)],
         ],
-        dtype=cp.complex128,
+        dtype=cp.complex64,
     )
 
 
@@ -58,7 +58,7 @@ def getQFTCuPy(n, inverse):
     qft = omega ** (j * k)
     qft = qft / cp.sqrt(N)
 
-    return qft.astype(cp.complex128)
+    return qft.astype(cp.complex64)
 
 
 def permutationMatrixCupy(perm: list):
@@ -185,7 +185,7 @@ def projection_cupy(densityMatrix, num_qubits, targets, basis):
 
     # projector applied to the density matrix
     nonzero = cp.where(proj != 0)[0]
-    resultRho = cp.zeros_like(densityMatrix, dtype=cp.complex128)
+    resultRho = cp.zeros_like(densityMatrix, dtype=cp.complex64)
 
     # This part uses the vectorized indexing, which facilitates the element assignment subroutine
     rows = nonzero[:, None]  # shape (len(nonzero),1)
@@ -245,7 +245,7 @@ def multiQubitsUnitaryCupy(u, qubits, targets):
     )  # repeat every element 4 times i.e. [1,2] => [1,1,1,1,2,2,2,2]
 
     #  Element assignment
-    U = cp.zeros((2**num_qubits, 2**num_qubits), dtype=cp.complex128)
+    U = cp.zeros((2**num_qubits, 2**num_qubits), dtype=cp.complex64)
     U[repeated_rows.astype(cp.int64), idx_cols.astype(cp.int64)] = tiled_u.reshape(-1)
 
     return U

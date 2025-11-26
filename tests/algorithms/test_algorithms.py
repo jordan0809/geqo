@@ -248,7 +248,7 @@ class TestAlgorithms:
             np.array(test_u2).astype(np.complex128),
             np.identity(8).astype(np.complex128),
             rtol=1e-05,
-            atol=1e-08,
+            atol=1e-06,
         )
 
     def test_decompose_unitary_into_single_rotation_phase(self):
@@ -306,5 +306,5 @@ class TestAlgorithms:
             output,
             u2,
             rtol=1e-05,
-            atol=1e-08,
+            atol=1e-06,
         )

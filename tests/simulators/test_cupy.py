@@ -271,7 +271,7 @@ class TestCuPySimulators:
         # rho = np.array(rho.evalf(), dtype=np.float64)
         expect = cp.zeros((4, 4), dtype=cp.complex128)
         expect[0, 0] = 1
-        cp.testing.assert_allclose(expect, rho, rtol=1e-7, atol=1e-9)
+        cp.testing.assert_allclose(expect, rho, rtol=1e-5, atol=1e-6)
 
     def test_ensemble_simulator_non_unitary(self):
         # test setdensitymatix
@@ -434,7 +434,7 @@ class TestCuPySimulators:
         # rho = np.array(rho.evalf(), dtype=np.float64)
         expect = cp.zeros((4, 4), dtype=cp.complex128)
         expect[0, 0] = 1
-        cp.testing.assert_allclose(expect, rho, rtol=1e-7, atol=1e-9)
+        cp.testing.assert_allclose(expect, rho, rtol=1e-5, atol=1e-6)
 
     def test_mixedstate_simulator_non_unitary(self):
         # test setdensitymatix
@@ -471,10 +471,10 @@ class TestCuPySimulators:
         rho[1, 1] = 0.5
         # s = np.array(sim.densityMatrix.evalf(), dtype=np.float64)
         s = sim.densityMatrix
-        cp.testing.assert_allclose(s, rho, rtol=1e-7, atol=1e-9)
+        cp.testing.assert_allclose(s, rho, rtol=1e-5, atol=1e-6)
         # s2 = np.array(sim.measureHistory[-1]["mixed_state"].evalf(), dtype=np.float64)
         s2 = sim.measureHistory[-1]["mixed_state"]
-        cp.testing.assert_allclose(s2, rho, rtol=1e-7, atol=1e-9)
+        cp.testing.assert_allclose(s2, rho, rtol=1e-5, atol=1e-6)
 
         # test setbits
         sim.apply(Hadamard(), [0])
@@ -501,7 +501,7 @@ class TestCuPySimulators:
         rho[2, 2] = 1
         # s = np.array(sim.densityMatrix.evalf(), dtype=np.float64)
         s = sim.densityMatrix
-        cp.testing.assert_allclose(s, rho, rtol=1e-7, atol=1e-9)
+        cp.testing.assert_allclose(s, rho, rtol=1e-5, atol=1e-6)
 
         # test dropqubits
         sim.apply(DropQubits(1), [0])
@@ -587,7 +587,7 @@ class TestCuPySimulators:
         expect = cp.eye(4, dtype=cp.complex128)
         # s = np.array(sim.u, dtype=np.float64)
         s = sim.u
-        cp.testing.assert_allclose(expect, s, rtol=1e-7, atol=1e-9)
+        cp.testing.assert_allclose(expect, s, rtol=1e-5, atol=1e-6)
 
         class MockOperation(QuantumOperation):
             def __init__(self):
