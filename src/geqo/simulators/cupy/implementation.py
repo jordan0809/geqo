@@ -978,57 +978,43 @@ class statevectorSimulatorCuPy(BaseSimulatorCupy):
             ) & 1
 
             # Keep only the measured bits
-            measure_bits = bits[:, targets]
+            measure_bits = bits[:, targets]  # shape (2^n, t)
 
             # Convert each measure_bits row to an integer key
-            powers = 2 ** cp.arange(len(targets) - 1, -1, -1)
-            keys = (measure_bits * powers).sum(axis=1)
+            powers = 2 ** cp.arange(len(targets) - 1, -1, -1)  # shape t
+            keys = (measure_bits * powers).sum(axis=1)  # shape 2^n
 
-            # Sum up diagonals with the same kept qubits key using bincount
+            # Sum up basis with the same kept qubits key using bincount
             probs = cp.bincount(
                 keys,
                 weights=cp.real(self.state.ravel() * self.state.ravel().conj()),
                 minlength=2 ** len(targets),
             )
 
+            # Extract indices with nonzero probability
+            nonzero_indices = cp.where(probs > 1e-12)[0]  # len = k
+            probs = probs[nonzero_indices]
+
             store_bits = (
-                (cp.arange(len(probs))[:, None] >> cp.arange(len(targets) - 1, -1, -1))
-                & 1
-            ).astype(cp.int64)
+                (nonzero_indices[:, None] >> cp.arange(len(targets) - 1, -1, -1)) & 1
+            ).astype(cp.int64)  # shape (k, t)
 
             # Broadcast current classical bits to all possible outcomes
             all_classical = cp.broadcast_to(
                 self.classicalBits, (len(probs), self.numberBits)
-            ).copy()
+            ).copy()  # shape (k, n)
 
+            # Assign measurement bits to the new classical bits
             all_classical[:, cp.array(classicalTargets, dtype=cp.int64)] = (
-                store_bits  # each row represents each measured outcomes
+                store_bits  # each row represents a measured outcome
             )
 
-            if use_cupy:
+            if use_cupy:  # convert cupy array to numpy array
                 all_classical = cp.asnumpy(all_classical)
                 probs = cp.asnumpy(probs)
 
-            mask = probs > 1e-12
-
-            newClassicalBits = [tuple(row) for row in all_classical[mask]]
-            nonzero_probs = probs[mask]
-
-            probabilities = dict(zip(newClassicalBits, nonzero_probs.tolist()))
-
-            """for idx, sb in zip(range(len(probs)), store_bits):
-                newClassicalBits = self.classicalBits
-                for i in range(len(classicalTargets)):
-                    newClassicalBits[classicalTargets[i]] = sb[i]
-                # newClassicalBits = (
-                #    tuple(newClassicalBits.get().tolist())
-                #    if use_cupy
-                #    else tuple(newClassicalBits.tolist())
-                # )
-                newClassicalBits = tuple(newClassicalBits)
-                probabilities[newClassicalBits] = (
-                    probs[idx] if probs[idx] > 0 else 0
-                )  # ignore 0 probability"""
+            newClassicalBits = [tuple(int(x) for x in row) for row in all_classical]
+            probabilities = dict(zip(newClassicalBits, probs.tolist()))
 
             self.measurementResult = probabilities
 
