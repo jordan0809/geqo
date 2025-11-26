@@ -1005,7 +1005,9 @@ class statevectorSimulatorCuPy(BaseSimulatorCupy):
                     if use_cupy
                     else tuple(newClassicalBits.tolist())
                 )
-                probabilities[newClassicalBits] = probs[idx] if probs[idx] > 0 else 0
+                probabilities[newClassicalBits] = (
+                    probs[idx] if probs[idx] > 0 else 0
+                )  # ignore 0 probability
 
             self.measurementResult = probabilities
 
