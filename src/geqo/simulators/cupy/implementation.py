@@ -88,13 +88,12 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
     elif isinstance(gate, PauliZ):
         return cp.array([[1.0, 0.0], [0.0, -1.0]], dtype=cp.complex64)
     elif isinstance(gate, Phase):
-        return cp.array(
-            [[1.0, 0.0], [0.0, cp.exp(1j * values[gate.name])]], dtype=cp.complex64
-        )
+        # cast numpy float to cupy first
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
+        return cp.array([[1.0, 0.0], [0.0, cp.exp(1j * theta)]], dtype=cp.complex64)
     elif isinstance(gate, InversePhase):
-        return cp.array(
-            [[1.0, 0.0], [0.0, cp.exp(-1j * values[gate.name])]], dtype=cp.complex64
-        )
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
+        return cp.array([[1.0, 0.0], [0.0, cp.exp(-1j * theta)]], dtype=cp.complex64)
     elif isinstance(gate, Hadamard):
         w2 = 1 / cp.sqrt(2)
         return cp.array([[w2, w2], [w2, -w2]], dtype=cp.complex64)
@@ -137,46 +136,54 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
         res[start:end, start:end] = u
         return res
     elif isinstance(gate, Rx):
-        return getRXCupy(values[gate.name])
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
+        return getRXCupy(theta)
     elif isinstance(gate, InverseRx):
-        return getRXCupy(-values[gate.name])
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
+        return getRXCupy(-theta)
     elif isinstance(gate, Ry):
-        return getRYCupy(values[gate.name])
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
+        return getRYCupy(theta)
     elif isinstance(gate, InverseRy):
-        return getRYCupy(-values[gate.name])
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
+        return getRYCupy(-theta)
     elif isinstance(gate, Rz):
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
         return cp.array(
             [
-                [cp.exp(-1j * values[gate.name] / 2), 0.0],
-                [0.0, cp.exp(1j * values[gate.name] / 2)],
+                [cp.exp(-1j * theta / 2), 0.0],
+                [0.0, cp.exp(1j * theta / 2)],
             ],
             dtype=cp.complex64,
         )
     elif isinstance(gate, InverseRz):
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
         return cp.array(
             [
-                [cp.exp(1j * values[gate.name] / 2), 0.0],
-                [0.0, cp.exp(-1j * values[gate.name] / 2)],
+                [cp.exp(1j * theta / 2), 0.0],
+                [0.0, cp.exp(-1j * theta / 2)],
             ],
             dtype=cp.complex64,
         )
     elif isinstance(gate, Rzz):
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
         return cp.array(
             [
-                [cp.exp(-1j * values[gate.name] / 2), 0.0, 0.0, 0.0],
-                [0.0, cp.exp(1j * values[gate.name] / 2), 0.0, 0.0],
-                [0.0, 0.0, cp.exp(1j * values[gate.name] / 2), 0.0],
-                [0.0, 0.0, 0.0, cp.exp(-1j * values[gate.name] / 2)],
+                [cp.exp(-1j * theta / 2), 0.0, 0.0, 0.0],
+                [0.0, cp.exp(1j * theta / 2), 0.0, 0.0],
+                [0.0, 0.0, cp.exp(1j * theta / 2), 0.0],
+                [0.0, 0.0, 0.0, cp.exp(-1j * theta / 2)],
             ],
             dtype=cp.complex64,
         )
     elif isinstance(gate, InverseRzz):
+        theta = cp.asarray(values[gate.name], dtype=cp.complex64)
         return cp.array(
             [
-                [cp.exp(1j * values[gate.name] / 2), 0.0, 0.0, 0.0],
-                [0.0, cp.exp(-1j * values[gate.name] / 2), 0.0, 0.0],
-                [0.0, 0.0, cp.exp(-1j * values[gate.name] / 2), 0.0],
-                [0.0, 0.0, 0.0, cp.exp(1j * values[gate.name] / 2)],
+                [cp.exp(1j * theta / 2), 0.0, 0.0, 0.0],
+                [0.0, cp.exp(-1j * theta / 2), 0.0, 0.0],
+                [0.0, 0.0, cp.exp(-1j * theta / 2), 0.0],
+                [0.0, 0.0, 0.0, cp.exp(1j * theta / 2)],
             ],
             dtype=cp.complex64,
         )
