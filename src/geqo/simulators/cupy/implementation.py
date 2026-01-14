@@ -90,12 +90,14 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
     elif isinstance(gate, Phase):
         # cast numpy float to cupy first
         theta = cp.asarray(values[gate.name], dtype=cp.complex64)
-        exp_val = cp.exp(1j * theta)
-        return cp.array([[1.0, 0.0], [0.0, exp_val]], dtype=cp.complex64)
+        one = cp.asarray(1, dtype=cp.complex64)
+        zero = cp.asarray(0, dtype=cp.complex64)
+        return cp.stack([cp.stack([one, zero]), cp.stack([zero, cp.exp(1j * theta)])])
     elif isinstance(gate, InversePhase):
         theta = cp.asarray(values[gate.name], dtype=cp.complex64)
-        exp_val = cp.exp(-1j * theta)
-        return cp.array([[1.0, 0.0], [0.0, exp_val]], dtype=cp.complex64)
+        one = cp.asarray(1, dtype=cp.complex64)
+        zero = cp.asarray(0, dtype=cp.complex64)
+        return cp.stack([cp.stack([one, zero]), cp.stack([zero, cp.exp(-1j * theta)])])
     elif isinstance(gate, Hadamard):
         w2 = 1 / cp.sqrt(2)
         return cp.array([[w2, w2], [w2, -w2]], dtype=cp.complex64)
@@ -151,51 +153,43 @@ def getUnitaryCuPy(gate: QuantumOperation, values: dict) -> cp.ndarray:
         return getRYCupy(-theta)
     elif isinstance(gate, Rz):
         theta = cp.asarray(values[gate.name], dtype=cp.complex64)
-        neg_exp_val = cp.exp(-1j * theta / 2)
-        pos_exp_val = cp.exp(1j * theta / 2)
-        return cp.array(
+        zero = cp.asarray(0, dtype=cp.complex64)
+        return cp.stack(
             [
-                [neg_exp_val, 0.0],
-                [0.0, pos_exp_val],
-            ],
-            dtype=cp.complex64,
+                cp.stack([cp.exp(-1j * theta), zero]),
+                cp.stack([zero, cp.exp(1j * theta)]),
+            ]
         )
     elif isinstance(gate, InverseRz):
         theta = cp.asarray(values[gate.name], dtype=cp.complex64)
-        neg_exp_val = cp.exp(-1j * theta / 2)
-        pos_exp_val = cp.exp(1j * theta / 2)
-        return cp.array(
+        zero = cp.asarray(0, dtype=cp.complex64)
+        return cp.stack(
             [
-                [pos_exp_val, 0.0],
-                [0.0, neg_exp_val],
-            ],
-            dtype=cp.complex64,
+                cp.stack([cp.exp(1j * theta), zero]),
+                cp.stack([zero, cp.exp(-1j * theta)]),
+            ]
         )
     elif isinstance(gate, Rzz):
         theta = cp.asarray(values[gate.name], dtype=cp.complex64)
-        neg_exp_val = cp.exp(-1j * theta / 2)
-        pos_exp_val = cp.exp(1j * theta / 2)
-        return cp.array(
+        zero = cp.asarray(0, dtype=cp.complex64)
+        return cp.stack(
             [
-                [neg_exp_val, 0.0, 0.0, 0.0],
-                [0.0, pos_exp_val, 0.0, 0.0],
-                [0.0, 0.0, pos_exp_val, 0.0],
-                [0.0, 0.0, 0.0, neg_exp_val],
-            ],
-            dtype=cp.complex64,
+                cp.stack([cp.exp(-1j * theta), zero, zero, zero]),
+                cp.stack([zero, cp.exp(1j * theta), zero, zero]),
+                cp.stack([zero, zero, cp.exp(1j * theta), zero]),
+                cp.stack([zero, zero, zero, cp.exp(-1j * theta)]),
+            ]
         )
     elif isinstance(gate, InverseRzz):
         theta = cp.asarray(values[gate.name], dtype=cp.complex64)
-        neg_exp_val = cp.exp(-1j * theta / 2)
-        pos_exp_val = cp.exp(1j * theta / 2)
-        return cp.array(
+        zero = cp.asarray(0, dtype=cp.complex64)
+        return cp.stack(
             [
-                [pos_exp_val, 0.0, 0.0, 0.0],
-                [0.0, neg_exp_val, 0.0, 0.0],
-                [0.0, 0.0, neg_exp_val, 0.0],
-                [0.0, 0.0, 0.0, pos_exp_val],
-            ],
-            dtype=cp.complex64,
+                cp.stack([cp.exp(1j * theta), zero, zero, zero]),
+                cp.stack([zero, cp.exp(-1j * theta), zero, zero]),
+                cp.stack([zero, zero, cp.exp(-1j * theta), zero]),
+                cp.stack([zero, zero, zero, cp.exp(1j * theta)]),
+            ]
         )
     elif isinstance(gate, QFT):
         return getQFTCuPy(gate.numberQubits, inverse=False)
